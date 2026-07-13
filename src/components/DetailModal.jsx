@@ -86,6 +86,34 @@ const getItemStarforce = (item) => {
   return match ? match[1] : null;
 };
 
+const getTooltipGradeClass = (gradeText) => {
+  if (!gradeText || typeof gradeText !== 'string') return 'normal';
+  const clean = gradeText.trim().toLowerCase().normalize('NFC');
+  if (clean.includes('레전') || clean.includes('legend')) return 'legendary';
+  if (clean.includes('유니') || clean.includes('uniq')) return 'unique';
+  if (clean.includes('에픽') || clean.includes('epic')) return 'epic';
+  if (clean.includes('레어') || clean.includes('rare')) return 'rare';
+  return 'normal';
+};
+
+const getTooltipPosition = ({ x, y }) => {
+  const tooltipWidth = 330;
+  const margin = 12;
+  const cursorGap = 18;
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  const left = Math.min(
+    Math.max(margin, x + cursorGap),
+    viewportWidth - tooltipWidth - margin
+  );
+  const top = y > viewportHeight * 0.52
+    ? margin
+    : Math.min(y + cursorGap, viewportHeight * 0.18);
+
+  return { left, top };
+};
+
 export default function DetailModal({ character, onClose, onUpdatePresets, onRefresh }) {
   const { id, name, level, job, avatar, worldName, presets, unionInfo, selectedPresets, activePresets } = character;
   const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
@@ -578,22 +606,39 @@ export default function DetailModal({ character, onClose, onUpdatePresets, onRef
         
         {/* MapleStory Style Equipment Tooltip */}
         {hoveredItem && (
+          (() => {
+            const tooltipPosition = getTooltipPosition(mousePos);
+            const potentialGrade = getTooltipGradeClass(hoveredItem.item.grade);
+            const addPotentialGrade = getTooltipGradeClass(hoveredItem.item.addPotentialGrade);
+            return (
           <div 
-            className={`equip-tooltip-box grade-${getGradeClass(hoveredItem.item.grade)}`}
+            className={`equip-tooltip-box grade-${potentialGrade}`}
             style={{
               position: 'fixed',
-              left: `${mousePos.x + 20}px`,
-              top: `${mousePos.y + 10}px`,
+              left: `${tooltipPosition.left}px`,
+              top: `${tooltipPosition.top}px`,
               zIndex: 9999,
-              pointerEvents: 'none',
-              transform: mousePos.y > window.innerHeight * 0.65 ? 'translateY(-100%) translateY(-20px)' : 'none'
+              pointerEvents: 'none'
             }}
           >
             {/* Tooltip Header: Stars */}
             {hoveredItem.item.starforce && (
               <div className="tooltip-stars">
-                {Array.from({ length: Math.min(hoveredItem.item.starforce, 25) }).map((_, i) => (
-                  <span key={i} className="tooltip-star">★</span>
+                {Array.from({ length: Math.ceil(Math.min(hoveredItem.item.starforce, 25) / 15) }).map((_, rowIndex) => (
+                  <span key={rowIndex} className="tooltip-star-row">
+                    {Array.from({
+                      length: Math.ceil(Math.min(15, Math.min(hoveredItem.item.starforce, 25) - rowIndex * 15) / 5)
+                    }).map((__, groupIndex) => {
+                      const remainingStars = Math.min(hoveredItem.item.starforce, 25) - rowIndex * 15 - groupIndex * 5;
+                      return (
+                        <span key={groupIndex} className="tooltip-star-group">
+                          {Array.from({ length: Math.min(5, remainingStars) }).map((___, starIndex) => (
+                            <span key={starIndex} className="tooltip-star">★</span>
+                          ))}
+                        </span>
+                      );
+                    })}
+                  </span>
                 ))}
               </div>
             )}
@@ -650,7 +695,7 @@ export default function DetailModal({ character, onClose, onUpdatePresets, onRef
             {typeof hoveredItem.item === 'object' && hoveredItem.item.potentials && hoveredItem.item.potentials.length > 0 && (
               <>
                 <div className="tooltip-divider" />
-                <div className="tooltip-potentials-section">
+                <div className={`tooltip-potentials-section potential-grade-${potentialGrade}`}>
                   <div className="potentials-title">■ 잠재능력</div>
                   {hoveredItem.item.potentials.map((line, idx) => (
                     <div key={idx} className="potential-line">{line}</div>
@@ -663,7 +708,7 @@ export default function DetailModal({ character, onClose, onUpdatePresets, onRef
             {typeof hoveredItem.item === 'object' && hoveredItem.item.addPotentials && hoveredItem.item.addPotentials.length > 0 && (
               <>
                 <div className="tooltip-divider" />
-                <div className="tooltip-potentials-section additional">
+                <div className={`tooltip-potentials-section additional potential-grade-${addPotentialGrade}`}>
                   <div className="potentials-title">■ 에디셔널 잠재능력</div>
                   {hoveredItem.item.addPotentials.map((line, idx) => (
                     <div key={idx} className="potential-line">{line}</div>
@@ -683,6 +728,8 @@ export default function DetailModal({ character, onClose, onUpdatePresets, onRef
               </>
             )}
           </div>
+            );
+          })()
         )}
       </div>
     </div>

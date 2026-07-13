@@ -959,6 +959,7 @@
 /* Custom MapleStory Premium Tooltip Style */
 .equip-tooltip-box {
   width: 330px;
+  max-height: calc(100vh - 24px);
   background-color: #0c101a;
   border: 2px solid #2f3a52;
   border-radius: 6px;
@@ -967,7 +968,23 @@
   font-family: var(--font-sans);
   color: #fff;
   transition: opacity 0.1s ease;
-  overflow: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.45) rgba(15, 23, 42, 0.65);
+}
+
+.equip-tooltip-box::-webkit-scrollbar {
+  width: 6px;
+}
+
+.equip-tooltip-box::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.65);
+}
+
+.equip-tooltip-box::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: 999px;
 }
 
 /* Color codes for tooltip borders based on potential grade */
@@ -991,11 +1008,24 @@
 /* Stars */
 .tooltip-stars {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 0.18rem;
   margin-bottom: 0.5rem;
-  flex-wrap: wrap;
 }
+
+.tooltip-star-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.tooltip-star-group {
+  display: inline-flex;
+  gap: 2px;
+}
+
 .tooltip-star {
   font-size: 0.75rem;
   color: var(--accent-gold);
@@ -1119,28 +1149,45 @@
   gap: 0.25rem;
   font-size: 0.75rem;
   text-align: left;
+  padding: 0.55rem 0.65rem;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 .potentials-title {
   font-weight: 700;
   font-size: 0.75rem;
   margin-bottom: 0.2rem;
 }
-.equip-tooltip-box.grade-legendary .potentials-title { color: #22c55e; }
-.equip-tooltip-box.grade-unique .potentials-title { color: #facc15; }
-.equip-tooltip-box.grade-epic .potentials-title { color: #c084fc; }
-.equip-tooltip-box.grade-rare .potentials-title { color: #38bdf8; }
+.tooltip-potentials-section.potential-grade-legendary .potentials-title { color: #22c55e; }
+.tooltip-potentials-section.potential-grade-unique .potentials-title { color: #facc15; }
+.tooltip-potentials-section.potential-grade-epic .potentials-title { color: #c084fc; }
+.tooltip-potentials-section.potential-grade-rare .potentials-title { color: #38bdf8; }
+.tooltip-potentials-section.potential-grade-normal .potentials-title { color: #cbd5e1; }
 
 .potential-line {
   color: #e2e8f0;
   padding-left: 0.25rem;
 }
 
-/* Additional potentials styling (light green header/lines) */
-.tooltip-potentials-section.additional .potentials-title {
-  color: #38bdf8; /* light blue/cyan for add potential */
+.tooltip-potentials-section.potential-grade-legendary {
+  border-color: rgba(34, 197, 94, 0.28);
+  background-color: rgba(34, 197, 94, 0.05);
 }
-.tooltip-potentials-section.additional .potential-line {
-  color: #93c5fd;
+
+.tooltip-potentials-section.potential-grade-unique {
+  border-color: rgba(250, 204, 21, 0.28);
+  background-color: rgba(250, 204, 21, 0.05);
+}
+
+.tooltip-potentials-section.potential-grade-epic {
+  border-color: rgba(192, 132, 252, 0.28);
+  background-color: rgba(192, 132, 252, 0.05);
+}
+
+.tooltip-potentials-section.potential-grade-rare {
+  border-color: rgba(56, 189, 248, 0.28);
+  background-color: rgba(56, 189, 248, 0.05);
 }
 
 /* Fallback card styles */
@@ -1154,4 +1201,3 @@
   margin-top: 0.2rem;
   font-weight: 600;
 }
-
