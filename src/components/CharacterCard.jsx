@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Compass, Edit, Trash2, RefreshCw, GripVertical } from 'lucide-react';
 import { getSimulatedSpec } from '../utils/specSimulator';
 import { getTagTone } from '../utils/tagOptions';
+import { formatCombatPower } from '../utils/formatters';
 import './CharacterCard.css';
 
 export default function CharacterCard({ 
@@ -22,11 +23,6 @@ export default function CharacterCard({
   const { combatPower: currentCombatPower } = getSimulatedSpec(character);
   const [isCardRefreshing, setIsCardRefreshing] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState(null);
-
-  // Format numbers with commas
-  const formatNumber = (num) => {
-    return new Intl.NumberFormat().format(num);
-  };
 
   // Handle individual card refresh
   const handleCardRefresh = async (e) => {
@@ -223,7 +219,7 @@ export default function CharacterCard({
             <Compass size={14} className="stat-icon" />
             <span>전투력</span>
           </div>
-          <span className="stat-value combat-power">{formatNumber(currentCombatPower)}</span>
+          <span className="stat-value combat-power">{formatCombatPower(currentCombatPower)}</span>
         </div>
         
         {/* EXP Progress Track */}

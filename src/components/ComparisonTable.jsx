@@ -1,11 +1,8 @@
 import { Check, Edit, Eye } from 'lucide-react';
 import { getSimulatedSpec } from '../utils/specSimulator';
 import { getTagTone } from '../utils/tagOptions';
+import { formatCombatPower } from '../utils/formatters';
 import './ComparisonTable.css';
-
-function formatNumber(value) {
-  return new Intl.NumberFormat().format(value || 0);
-}
 
 const DEFAULT_SELECTED_PRESETS = {
   equipment: 1,
@@ -97,7 +94,7 @@ export default function ComparisonTable({
                 </td>
                 <td>{character.job}</td>
                 <td>{character.worldName || '-'}</td>
-                <td className="numeric highlight">{formatNumber(simulated.combatPower)}</td>
+                <td className="numeric highlight">{formatCombatPower(simulated.combatPower)}</td>
                 <td>
                   <div className="compare-preset-controls" aria-label={`${character.name} 프리셋 설정`}>
                     <PresetSelect

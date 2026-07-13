@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Sword, Shield, Layers, Zap, Users, SlidersHorizontal, RefreshCw } from 'lucide-react';
 import { getSimulatedSpec } from '../utils/specSimulator';
+import { formatCombatPower } from '../utils/formatters';
 import './DetailModal.css';
 
 const SLOT_LAYOUT = [
@@ -389,7 +390,7 @@ export default function DetailModal({ character, onClose, onUpdatePresets, onRef
             </div>
             <div className="detail-power-row">
               <Sword size={14} className="icon-gold" />
-              <span>{isSimulatedPreset ? '예상 전투력' : '전투력'}: <strong className="text-gold">{formatNumber(currentCombatPower)}</strong></span>
+              <span>{isSimulatedPreset ? '예상 전투력' : '전투력'}: <strong className="text-gold">{formatCombatPower(currentCombatPower)}</strong></span>
             </div>
           </div>
           {/* 우측 상단 액션 버튼 그룹 */}
