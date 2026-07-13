@@ -149,6 +149,7 @@ export default function DetailModal({ character, onClose, onUpdatePresets, onRef
   // 기존 캐릭터와의 하위 호환성을 위한 안전망 설정
   const defaultPresets = {
     equipment: { preset1: {}, preset2: {}, preset3: {} },
+    setEffects: { preset1: [], preset2: [], preset3: [] },
     cashEquipment: { preset1: [], preset2: [], preset3: [] },
     ability: { preset1: [], preset2: [], preset3: [] },
     hyperStat: { preset1: [], preset2: [], preset3: [] },
@@ -160,6 +161,7 @@ export default function DetailModal({ character, onClose, onUpdatePresets, onRef
     ...defaultPresets,
     ...(presets || {}),
     equipment: { ...defaultPresets.equipment, ...(presets?.equipment || {}) },
+    setEffects: { ...defaultPresets.setEffects, ...(presets?.setEffects || {}) },
     cashEquipment: { ...defaultPresets.cashEquipment, ...(presets?.cashEquipment || {}) },
     ability: { ...defaultPresets.ability, ...(presets?.ability || {}) },
     hyperStat: { ...defaultPresets.hyperStat, ...(presets?.hyperStat || {}) },
@@ -202,7 +204,13 @@ export default function DetailModal({ character, onClose, onUpdatePresets, onRef
     safePresets.cashEquipment[`preset${safeSelectedPresets.cashEquipment}`]
   ) || character.cashEquipment || [];
   const currentPets = Array.isArray(character.petEquipment) ? character.petEquipment : [];
-  const currentSetEffects = Array.isArray(character.setEffects) ? character.setEffects : [];
+  const selectedSetEffects = (
+    safePresets.setEffects &&
+    safePresets.setEffects[`preset${safeSelectedPresets.equipment}`]
+  ) || [];
+  const currentSetEffects = selectedSetEffects.length > 0
+    ? selectedSetEffects
+    : (Array.isArray(character.setEffects) ? character.setEffects : []);
 
   // 프리셋에 따른 스펙/전투력 시뮬레이션 계산
   const { combatPower: currentCombatPower, stats: currentStats } = getSimulatedSpec(character);
@@ -758,7 +766,7 @@ export default function DetailModal({ character, onClose, onUpdatePresets, onRef
               <div className="set-effect-panel">
                 <div className="set-effect-header">
                   <span>활성 세트옵션</span>
-                  <small>현재 장착 장비 기준</small>
+                  <small>장비 프리셋 {safeSelectedPresets.equipment} 기준</small>
                 </div>
                 {currentSetEffects.length > 0 ? (
                   <div className="set-effect-list">

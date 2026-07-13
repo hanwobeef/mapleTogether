@@ -314,6 +314,29 @@ export function mapEquipmentSetEffects(setEffect = []) {
     .filter(effect => effect.totalSetCount > 0 || effect.activeOptions.length > 0);
 }
 
+export function mapEquipmentSetEffectPresets(setEffectData = {}, activePresetNo = 1) {
+  const presets = {
+    preset1: mapEquipmentSetEffects(setEffectData.set_effect_preset_1),
+    preset2: mapEquipmentSetEffects(setEffectData.set_effect_preset_2),
+    preset3: mapEquipmentSetEffects(setEffectData.set_effect_preset_3)
+  };
+  const defaultSetEffects = mapEquipmentSetEffects(setEffectData.set_effect);
+  const activePresetKey = `preset${activePresetNo}`;
+
+  if (presets[activePresetKey]?.length === 0 && defaultSetEffects.length > 0) {
+    presets[activePresetKey] = defaultSetEffects;
+  }
+
+  if (presets.preset1.length === 0 && defaultSetEffects.length > 0) {
+    presets.preset1 = defaultSetEffects;
+  }
+
+  return {
+    defaultSetEffects,
+    presets
+  };
+}
+
 /**
  * 넥슨 Open API로 조회한 원본 데이터를 우리 대시보드 스펙 양식에 맞추어 변환합니다.
  */
@@ -369,7 +392,6 @@ export async function fetchFullCharacterData(characterName) {
 
     // 7. 스탯 배열 매핑 (final_stat)
     const mappedStats = mapFinalStatsForDashboard(stat.final_stat);
-    const setEffects = mapEquipmentSetEffects(setEffect.set_effect);
 
     // 8. 장비 매핑 공통 헬퍼
     const slotMap = {
@@ -443,6 +465,7 @@ export async function fetchFullCharacterData(characterName) {
 
     // 장비 프리셋 파싱
     const activeEquipPresetNo = equipment.preset_no ? parseInt(equipment.preset_no) : 1;
+    const { defaultSetEffects, presets: setEffectPresets } = mapEquipmentSetEffectPresets(setEffect, activeEquipPresetNo);
     const equipmentPresets = {
       preset1: mapEquipmentList(equipment.item_equipment_preset_1),
       preset2: mapEquipmentList(equipment.item_equipment_preset_2),
@@ -652,7 +675,9 @@ export async function fetchFullCharacterData(characterName) {
         critDamage: mappedStats.critDamage
       },
       equipment: defaultEquip,
-      setEffects,
+      setEffects: defaultSetEffects.length > 0
+        ? defaultSetEffects
+        : (setEffectPresets[`preset${activeEquipPresetNo}`] || []),
       cashEquipment: defaultCashEquipment,
       petEquipment: pets,
       worldName: basic.world_name,
@@ -661,6 +686,7 @@ export async function fetchFullCharacterData(characterName) {
       // 프리셋 풀 데이터
       presets: {
         equipment: equipmentPresets,
+        setEffects: setEffectPresets,
         cashEquipment: cashEquipmentPresets,
         ability: abilityPresets,
         hyperStat: hyperStatPresets,
