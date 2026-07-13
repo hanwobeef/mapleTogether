@@ -13,9 +13,11 @@ export default function CharacterCard({
   onDragStart,
   onDragOver,
   onDragEnd,
-  isDragging
+  isDragging,
+  isPartyCandidate = false,
+  onTogglePartyCandidate
 }) {
-  const { id, name, level, job, avatar, worldName, currentExpRate, expHistory } = character;
+  const { id, name, level, job, avatar, worldName, currentExpRate, expHistory, owner, tags = [] } = character;
   const { combatPower: currentCombatPower } = getSimulatedSpec(character);
   const [isCardRefreshing, setIsCardRefreshing] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState(null);
@@ -192,6 +194,16 @@ export default function CharacterCard({
         <span className="char-job">{job}</span>
       </div>
 
+      <div className="card-meta-row">
+        <span className="owner-badge">{owner || '미지정'}</span>
+        {tags.length > 0 && (
+          <div className="tag-list">
+            {tags.slice(0, 3).map(tag => <span key={tag}>{tag}</span>)}
+            {tags.length > 3 && <span>+{tags.length - 3}</span>}
+          </div>
+        )}
+      </div>
+
       {/* Character Image Container */}
       <div className="char-avatar-container">
         {avatar ? (
@@ -230,6 +242,14 @@ export default function CharacterCard({
 
       {/* Card Action Buttons */}
       <div className="card-buttons">
+        {onTogglePartyCandidate && (
+          <button
+            className={`btn btn-secondary card-btn-candidate ${isPartyCandidate ? 'active' : ''}`}
+            onClick={onTogglePartyCandidate}
+          >
+            {isPartyCandidate ? '후보 선택됨' : '파티 후보'}
+          </button>
+        )}
         <button className="btn btn-primary card-btn-detail" onClick={onDetailClick}>
           세부 정보
         </button>

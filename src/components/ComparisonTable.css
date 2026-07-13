@@ -1,0 +1,131 @@
+.comparison-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--bg-secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1180px;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 0.8rem 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  text-align: left;
+  font-size: 0.82rem;
+  vertical-align: middle;
+}
+
+.comparison-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: var(--bg-card);
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.comparison-table tbody tr {
+  transition: background-color var(--transition-fast);
+}
+
+.comparison-table tbody tr:hover,
+.comparison-table tbody tr.selected {
+  background-color: color-mix(in srgb, var(--brand-cyan) 8%, transparent);
+}
+
+.comparison-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.compare-character-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 150px;
+}
+
+.compare-character-cell img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  border-radius: 6px;
+  background-color: var(--bg-avatar-frame);
+  border: 1px solid var(--border-avatar-frame);
+}
+
+.compare-character-cell div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.compare-character-cell strong {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.compare-character-cell span,
+.comparison-table .muted {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.numeric {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.numeric.highlight {
+  color: var(--accent-gold);
+  font-weight: 700;
+}
+
+.candidate-toggle,
+.compare-actions button {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.candidate-toggle.active,
+.candidate-toggle:hover,
+.compare-actions button:hover {
+  background-color: var(--brand-blue);
+  border-color: var(--brand-blue);
+  color: #fff;
+}
+
+.compare-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  min-width: 130px;
+}
+
+.compare-tags span:not(.muted) {
+  color: var(--brand-cyan);
+  background-color: color-mix(in srgb, var(--brand-cyan) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand-cyan) 25%, transparent);
+  border-radius: 999px;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.7rem;
+}
+
+.compare-actions {
+  display: flex;
+  gap: 0.35rem;
+}

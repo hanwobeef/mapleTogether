@@ -32,6 +32,8 @@ export default function EditModal({ character, onClose, onSave }) {
   const [stats, setStats] = useState(() => character?.stats || DEFAULT_STATS);
   const [avatar, setAvatar] = useState(() => character?.avatar || '');
   const [equipment, setEquipment] = useState(() => character?.equipment || null);
+  const [owner, setOwner] = useState(() => character?.owner || '');
+  const [tagInput, setTagInput] = useState(() => Array.isArray(character?.tags) ? character.tags.join(', ') : '');
   const [isLoadingApi, setIsLoadingApi] = useState(false);
   const [nexonData, setNexonData] = useState(null);
 
@@ -88,7 +90,9 @@ export default function EditModal({ character, onClose, onSave }) {
       combatPower: parseInt(combatPower) || 0,
       stats: stats,
       avatar: avatar,
-      equipment: equipment
+      equipment: equipment,
+      owner: owner.trim() || '미지정',
+      tags: tagInput.split(',').map(tag => tag.trim()).filter(Boolean)
     };
     
     onSave(charData);
@@ -137,6 +141,31 @@ export default function EditModal({ character, onClose, onSave }) {
                   <Search size={14} />
                   {isLoadingApi ? '조회 중...' : '조회'}
                 </button>
+              </div>
+            </div>
+
+            <div className="form-section">
+              <div className="form-row">
+                <div className="form-field">
+                  <label>소유자</label>
+                  <input
+                    type="text"
+                    value={owner}
+                    onChange={(e) => setOwner(e.target.value)}
+                    placeholder="같이 하는 사람 이름 또는 닉네임"
+                    maxLength={20}
+                  />
+                </div>
+                <div className="form-field">
+                  <label>태그</label>
+                  <input
+                    type="text"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    placeholder="본캐, 검마팟, 보스돌이"
+                    maxLength={80}
+                  />
+                </div>
               </div>
             </div>
 

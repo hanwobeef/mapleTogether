@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import CharacterCard from './CharacterCard';
 import DetailModal from './DetailModal';
 import EditModal from './EditModal';
-import { RefreshCw, UserPlus, ShieldAlert, Sparkles, Sun, Moon } from 'lucide-react';
+import { RefreshCw, UserPlus, ShieldAlert, Sparkles, Sun, Moon, LayoutGrid, Table2, Users, X } from 'lucide-react';
 import { fetchFullCharacterData } from '../utils/nexonApi';
+import ComparisonTable from './ComparisonTable';
 import './Dashboard.css';
 
 const INITIAL_CHARACTERS = [];
@@ -14,6 +15,25 @@ const STORAGE_KEYS = {
   theme: 'maple_dashboard_theme'
 };
 const STORAGE_VERSION = '1';
+const UNASSIGNED_OWNER = '미지정';
+
+function normalizeTags(tags) {
+  if (Array.isArray(tags)) {
+    return tags.map(tag => tag.toString().trim()).filter(Boolean);
+  }
+  if (typeof tags === 'string') {
+    return tags.split(',').map(tag => tag.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+function normalizeCharacter(character) {
+  return {
+    ...character,
+    owner: character.owner?.trim() || UNASSIGNED_OWNER,
+    tags: normalizeTags(character.tags)
+  };
+}
 
 function loadCharacters() {
   const version = localStorage.getItem(STORAGE_KEYS.storageVersion);
@@ -28,7 +48,7 @@ function loadCharacters() {
 
   try {
     const parsed = JSON.parse(saved);
-    return Array.isArray(parsed) ? parsed : INITIAL_CHARACTERS;
+    return Array.isArray(parsed) ? parsed.map(normalizeCharacter) : INITIAL_CHARACTERS;
   } catch {
     localStorage.removeItem(STORAGE_KEYS.characters);
     return INITIAL_CHARACTERS;
@@ -69,7 +89,58 @@ export default function Dashboard() {
   const [refreshFailures, setRefreshFailures] = useState([]);
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [timeCounter, setTimeCounter] = useState(loadLastUpdatedSeconds);
+  const [viewMode, setViewMode] = useState('cards');
+  const [ownerFilter, setOwnerFilter] = useState('all');
+  const [tagFilter, setTagFilter] = useState('all');
+  const [sortMode, setSortMode] = useState('manual');
+  const [partyCandidateIds, setPartyCandidateIds] = useState([]);
   const lastUpdated = formatElapsed(timeCounter);
+
+  const normalizedCharacters = useMemo(
+    () => characters.map(normalizeCharacter),
+    [characters]
+  );
+
+  const owners = useMemo(
+    () => [...new Set(normalizedCharacters.map(char => char.owner))].sort((a, b) => a.localeCompare(b, 'ko')),
+    [normalizedCharacters]
+  );
+
+  const tags = useMemo(
+    () => [...new Set(normalizedCharacters.flatMap(char => char.tags))].sort((a, b) => a.localeCompare(b, 'ko')),
+    [normalizedCharacters]
+  );
+
+  const filteredCharacters = useMemo(() => {
+    const filtered = normalizedCharacters.filter(char => {
+      const ownerMatches = ownerFilter === 'all' || char.owner === ownerFilter;
+      const tagMatches = tagFilter === 'all' || char.tags.includes(tagFilter);
+      return ownerMatches && tagMatches;
+    });
+
+    return [...filtered].sort((a, b) => {
+      if (sortMode === 'combatPower') return (b.combatPower || 0) - (a.combatPower || 0);
+      if (sortMode === 'level') return (b.level || 0) - (a.level || 0);
+      if (sortMode === 'owner') return a.owner.localeCompare(b.owner, 'ko') || a.name.localeCompare(b.name, 'ko');
+      return characters.findIndex(char => char.id === a.id) - characters.findIndex(char => char.id === b.id);
+    });
+  }, [characters, normalizedCharacters, ownerFilter, tagFilter, sortMode]);
+
+  const ownerGroups = useMemo(() => {
+    return filteredCharacters.reduce((groups, char) => {
+      const group = groups.get(char.owner) || [];
+      group.push(char);
+      groups.set(char.owner, group);
+      return groups;
+    }, new Map());
+  }, [filteredCharacters]);
+
+  const partyCandidates = useMemo(
+    () => partyCandidateIds
+      .map(id => normalizedCharacters.find(char => char.id === id))
+      .filter(Boolean),
+    [normalizedCharacters, partyCandidateIds]
+  );
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -144,9 +215,10 @@ export default function Dashboard() {
   };
 
   const handleSaveCharacter = (charData) => {
+    const normalizedCharData = normalizeCharacter(charData);
     if (charData.id) {
       // Edit existing
-      setCharacters(prev => prev.map(c => c.id === charData.id ? charData : c));
+      setCharacters(prev => prev.map(c => c.id === normalizedCharData.id ? normalizedCharData : c));
     } else {
       // Add new
       const newId = characters.length > 0 ? Math.max(...characters.map(c => c.id)) + 1 : 1;
@@ -170,11 +242,11 @@ export default function Dashboard() {
       }
 
       const newChar = {
-        ...charData,
+        ...normalizedCharData,
         id: newId,
-        avatar: charData.avatar || matchedAvatar,
-        trend: charData.dailyExp > 0 ? 'up' : 'none',
-        bossClear: charData.bossClear || {
+        avatar: normalizedCharData.avatar || matchedAvatar,
+        trend: normalizedCharData.dailyExp > 0 ? 'up' : 'none',
+        bossClear: normalizedCharData.bossClear || {
           easySignus: true, hardHilla: true, chaosPinkbean: true, chaosZakum: true,
           chaosPapulatus: false, normalMagnus: true, chaosPierre: false,
           chaosVonBon: false, chaosCrimsonQueen: false, chaosVellum: false,
@@ -195,6 +267,7 @@ export default function Dashboard() {
   const handleDeleteCharacter = (id) => {
     if (window.confirm('정말 이 캐릭터를 대시보드에서 삭제하시겠습니까?')) {
       setCharacters(prev => prev.filter(c => c.id !== id));
+      setPartyCandidateIds(prev => prev.filter(candidateId => candidateId !== id));
       if (selectedChar && selectedChar.id === id) setSelectedChar(null);
     }
   };
@@ -255,6 +328,35 @@ export default function Dashboard() {
     }));
   };
 
+  const togglePartyCandidate = (charId) => {
+    setPartyCandidateIds(prev => (
+      prev.includes(charId)
+        ? prev.filter(id => id !== charId)
+        : [...prev, charId]
+    ));
+  };
+
+  const renderCharacterCard = (char) => {
+    const originalIndex = characters.findIndex(item => item.id === char.id);
+    return (
+      <CharacterCard
+        key={char.id}
+        character={char}
+        index={originalIndex}
+        onDetailClick={() => setSelectedChar(char)}
+        onEditClick={() => setEditChar(char)}
+        onDeleteClick={() => handleDeleteCharacter(char.id)}
+        onRefresh={handleRefreshSingleCharacter}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+        isDragging={draggedIndex === originalIndex}
+        isPartyCandidate={partyCandidateIds.includes(char.id)}
+        onTogglePartyCandidate={() => togglePartyCandidate(char.id)}
+      />
+    );
+  };
+
 
 
   return (
@@ -291,6 +393,73 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {characters.length > 0 && (
+        <div className="dashboard-controls">
+          <div className="view-tabs" role="tablist" aria-label="대시보드 보기 방식">
+            <button className={`view-tab ${viewMode === 'cards' ? 'active' : ''}`} onClick={() => setViewMode('cards')}>
+              <LayoutGrid size={15} />
+              카드
+            </button>
+            <button className={`view-tab ${viewMode === 'owners' ? 'active' : ''}`} onClick={() => setViewMode('owners')}>
+              <Users size={15} />
+              사람별
+            </button>
+            <button className={`view-tab ${viewMode === 'compare' ? 'active' : ''}`} onClick={() => setViewMode('compare')}>
+              <Table2 size={15} />
+              비교표
+            </button>
+          </div>
+
+          <div className="filter-row">
+            <label>
+              소유자
+              <select value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)}>
+                <option value="all">전체</option>
+                {owners.map(owner => (
+                  <option key={owner} value={owner}>{owner}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              태그
+              <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}>
+                <option value="all">전체</option>
+                {tags.map(tag => (
+                  <option key={tag} value={tag}>{tag}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              정렬
+              <select value={sortMode} onChange={(e) => setSortMode(e.target.value)}>
+                <option value="manual">등록 순서</option>
+                <option value="combatPower">전투력 높은 순</option>
+                <option value="level">레벨 높은 순</option>
+                <option value="owner">소유자순</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      )}
+
+      {partyCandidates.length > 0 && (
+        <div className="party-candidate-panel">
+          <div>
+            <strong>파티 후보</strong>
+            <span>{partyCandidates.length}명 선택됨</span>
+          </div>
+          <div className="party-candidate-list">
+            {partyCandidates.map(char => (
+              <button key={char.id} className="party-candidate-chip" onClick={() => togglePartyCandidate(char.id)}>
+                <span>{char.name}</span>
+                <small>{char.owner}</small>
+                <X size={12} />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {characters.length === 0 ? (
         <div className="empty-dashboard">
           <ShieldAlert size={48} className="empty-icon" />
@@ -302,23 +471,41 @@ export default function Dashboard() {
           </button>
         </div>
       ) : (
-        <div className="cards-grid">
-          {characters.map((char, idx) => (
-            <CharacterCard 
-              key={char.id}
-              character={char}
-              index={idx}
-              onDetailClick={() => setSelectedChar(char)}
-              onEditClick={() => setEditChar(char)}
-              onDeleteClick={() => handleDeleteCharacter(char.id)}
-              onRefresh={handleRefreshSingleCharacter}
-              onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
-              onDragEnd={handleDragEnd}
-              isDragging={draggedIndex === idx}
+        <>
+          {filteredCharacters.length === 0 ? (
+            <div className="empty-dashboard compact">
+              <ShieldAlert size={32} className="empty-icon" />
+              <h2>조건에 맞는 캐릭터가 없습니다</h2>
+              <p>소유자 또는 태그 필터를 조정해보세요.</p>
+            </div>
+          ) : viewMode === 'compare' ? (
+            <ComparisonTable
+              characters={filteredCharacters}
+              selectedIds={partyCandidateIds}
+              onToggleCandidate={togglePartyCandidate}
+              onDetailClick={setSelectedChar}
+              onEditClick={setEditChar}
             />
-          ))}
-        </div>
+          ) : viewMode === 'owners' ? (
+            <div className="owner-groups">
+              {[...ownerGroups.entries()].map(([owner, group]) => (
+                <section className="owner-group" key={owner}>
+                  <div className="owner-group-header">
+                    <h2>{owner}</h2>
+                    <span>{group.length} 캐릭터</span>
+                  </div>
+                  <div className="cards-grid">
+                    {group.map(renderCharacterCard)}
+                  </div>
+                </section>
+              ))}
+            </div>
+          ) : (
+            <div className="cards-grid">
+              {filteredCharacters.map(renderCharacterCard)}
+            </div>
+          )}
+        </>
       )}
 
       {refreshFailures.length > 0 && (

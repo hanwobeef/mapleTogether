@@ -114,6 +114,49 @@
   flex-shrink: 0;
 }
 
+.card-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 24px;
+}
+
+.owner-badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 46%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--accent-blue);
+  background-color: color-mix(in srgb, var(--accent-blue) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-blue) 25%, transparent);
+  border-radius: 999px;
+  padding: 0.18rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.tag-list {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  justify-content: flex-end;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.tag-list span {
+  color: var(--brand-cyan);
+  background-color: color-mix(in srgb, var(--brand-cyan) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand-cyan) 22%, transparent);
+  border-radius: 999px;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+}
+
 /* Avatar Box */
 .char-avatar-container {
   height: 240px; /* Increased from 200px */
@@ -343,9 +386,15 @@
   font-size: 0.85rem;
 }
 
-.card-btn-compare {
+.card-btn-candidate {
   padding: 0.65rem 0.5rem;
   font-size: 0.85rem;
+}
+
+.card-btn-candidate.active {
+  border-color: var(--brand-cyan);
+  color: var(--brand-cyan);
+  background-color: color-mix(in srgb, var(--brand-cyan) 12%, var(--bg-card));
 }
 
 /* Hover Quick Actions */
