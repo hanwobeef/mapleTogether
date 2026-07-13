@@ -273,6 +273,40 @@ export function mapFinalStatsForDashboard(finalStat = []) {
   };
 }
 
+function normalizeOptionText(option) {
+  if (!option) return "";
+  if (typeof option === "string") return option;
+  return option.set_option || option.option || option.value || option.stat_value || "";
+}
+
+export function mapEquipmentSetEffects(setEffect = []) {
+  if (!Array.isArray(setEffect)) return [];
+
+  return setEffect
+    .filter(effect => effect && effect.set_name)
+    .map(effect => ({
+      name: effect.set_name,
+      totalSetCount: parseStatNumber(effect.total_set_count),
+      activeOptions: Array.isArray(effect.set_effect_info)
+        ? effect.set_effect_info
+          .map(info => ({
+            count: parseStatNumber(info.set_count),
+            option: normalizeOptionText(info)
+          }))
+          .filter(info => info.count > 0 && info.option)
+        : [],
+      fullOptions: Array.isArray(effect.set_option_full)
+        ? effect.set_option_full
+          .map(info => ({
+            count: parseStatNumber(info.set_count),
+            option: normalizeOptionText(info)
+          }))
+          .filter(info => info.count > 0 && info.option)
+        : []
+    }))
+    .filter(effect => effect.totalSetCount > 0 || effect.activeOptions.length > 0);
+}
+
 /**
  * 넥슨 Open API로 조회한 원본 데이터를 우리 대시보드 스펙 양식에 맞추어 변환합니다.
  */
@@ -327,6 +361,7 @@ export async function fetchFullCharacterData(characterName) {
 
     // 7. 스탯 배열 매핑 (final_stat)
     const mappedStats = mapFinalStatsForDashboard(stat.final_stat);
+    const setEffects = mapEquipmentSetEffects(equipment.set_effect);
 
     // 8. 장비 매핑 공통 헬퍼
     const slotMap = {
@@ -609,6 +644,7 @@ export async function fetchFullCharacterData(characterName) {
         critDamage: mappedStats.critDamage
       },
       equipment: defaultEquip,
+      setEffects,
       cashEquipment: defaultCashEquipment,
       petEquipment: pets,
       worldName: basic.world_name,

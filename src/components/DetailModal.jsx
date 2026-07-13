@@ -201,6 +201,7 @@ export default function DetailModal({ character, onClose, onUpdatePresets, onRef
     safePresets.cashEquipment[`preset${safeSelectedPresets.cashEquipment}`]
   ) || character.cashEquipment || [];
   const currentPets = Array.isArray(character.petEquipment) ? character.petEquipment : [];
+  const currentSetEffects = Array.isArray(character.setEffects) ? character.setEffects : [];
 
   // 프리셋에 따른 스펙/전투력 시뮬레이션 계산
   const { combatPower: currentCombatPower, stats: currentStats } = getSimulatedSpec(character);
@@ -752,6 +753,37 @@ export default function DetailModal({ character, onClose, onUpdatePresets, onRef
                   </div>
                 )}
               </div>
+
+              {currentSetEffects.length > 0 && (
+                <div className="set-effect-panel">
+                  <div className="set-effect-header">
+                    <span>활성 세트옵션</span>
+                    <small>현재 장착 장비 기준</small>
+                  </div>
+                  <div className="set-effect-list">
+                    {currentSetEffects.map((effect) => (
+                      <div key={effect.name} className="set-effect-card">
+                        <div className="set-effect-title">
+                          <strong>{effect.name}</strong>
+                          {effect.totalSetCount > 0 && <span>{effect.totalSetCount}세트</span>}
+                        </div>
+                        {effect.activeOptions.length > 0 ? (
+                          <div className="set-effect-options">
+                            {effect.activeOptions.map((option) => (
+                              <div key={`${effect.name}-${option.count}`} className="set-effect-option">
+                                <span>{option.count}세트</span>
+                                <p>{option.option}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="set-effect-empty">적용 중인 세트 옵션 정보가 없습니다.</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

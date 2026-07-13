@@ -7,9 +7,10 @@
 }
 
 .comparison-table {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
-  min-width: 1360px;
+  table-layout: auto;
 }
 
 .comparison-table th,
@@ -19,6 +20,7 @@
   text-align: left;
   font-size: 0.82rem;
   vertical-align: middle;
+  white-space: nowrap;
 }
 
 .comparison-table th {
@@ -47,17 +49,27 @@
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  min-width: 190px;
+  min-width: 220px;
 }
 
-.compare-character-cell img {
-  width: 62px;
-  height: 62px;
-  object-fit: contain;
+.compare-avatar-frame {
+  flex: 0 0 auto;
+  width: 82px;
+  height: 82px;
   border-radius: 8px;
   background-color: var(--bg-avatar-frame);
   border: 1px solid var(--border-avatar-frame);
-  padding: 2px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.compare-avatar-frame img {
+  width: 125%;
+  height: 125%;
+  object-fit: contain;
+  transform: scale(1.45) translateY(-2px);
 }
 
 .compare-character-cell div {
@@ -69,6 +81,7 @@
 .compare-character-cell strong {
   color: var(--text-primary);
   font-size: 0.9rem;
+  white-space: nowrap;
 }
 
 .compare-character-cell span,
@@ -88,35 +101,39 @@
 }
 
 .compare-preset-controls {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(58px, 1fr));
-  gap: 0.35rem;
-  min-width: 330px;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 190px;
 }
 
 .compare-preset-select {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.16rem;
   min-width: 0;
+  padding: 0.16rem 0.22rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--bg-card);
 }
 
 .compare-preset-select span {
   color: var(--text-muted);
-  font-size: 0.64rem;
+  font-size: 0.66rem;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .compare-preset-select select {
-  width: 100%;
-  height: 30px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background-color: var(--bg-card);
+  width: 34px;
+  height: 24px;
+  border: 0;
+  border-radius: 4px;
+  background-color: var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   font-weight: 700;
   cursor: pointer;
   outline: none;
@@ -125,7 +142,6 @@
 
 .compare-preset-select select:hover,
 .compare-preset-select select:focus {
-  border-color: var(--brand-cyan);
   background-color: var(--bg-card-hover);
 }
 
@@ -154,9 +170,9 @@
 
 .compare-tags {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.3rem;
-  min-width: 130px;
+  min-width: 110px;
 }
 
 .compare-tags span:not(.muted) {

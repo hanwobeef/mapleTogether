@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mapFinalStatsForDashboard } from "../src/utils/nexonApi.js";
+import { mapEquipmentSetEffects, mapFinalStatsForDashboard } from "../src/utils/nexonApi.js";
 
 test("maps Nexon final_stat boss monster damage to dashboard bossDamage", () => {
   const stats = mapFinalStatsForDashboard([
@@ -18,4 +18,28 @@ test("maps Nexon final_stat boss monster damage to dashboard bossDamage", () => 
   assert.equal(stats.finalDamage, 76.5);
   assert.equal(stats.critDamage, 121);
   assert.equal(stats.combatPower, 123456789);
+});
+
+test("maps active equipment set effects for detail modal display", () => {
+  const effects = mapEquipmentSetEffects([
+    {
+      set_name: "아케인셰이드 세트",
+      total_set_count: "5",
+      set_effect_info: [
+        { set_count: "2", set_option: "올스탯 : +50" },
+        { set_count: "5", set_option: "보스 몬스터 공격 시 데미지 : +30%" }
+      ],
+      set_option_full: [
+        { set_count: "6", set_option: "공격력 : +30" }
+      ]
+    }
+  ]);
+
+  assert.equal(effects.length, 1);
+  assert.equal(effects[0].name, "아케인셰이드 세트");
+  assert.equal(effects[0].totalSetCount, 5);
+  assert.deepEqual(effects[0].activeOptions, [
+    { count: 2, option: "올스탯 : +50" },
+    { count: 5, option: "보스 몬스터 공격 시 데미지 : +30%" }
+  ]);
 });

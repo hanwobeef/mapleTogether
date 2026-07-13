@@ -17,8 +17,8 @@ const DEFAULT_SELECTED_PRESETS = {
 
 function PresetSelect({ label, value, max = 3, onChange }) {
   return (
-    <label className="compare-preset-select">
-      <span>{label}</span>
+    <label className="compare-preset-select" title={`${label} 프리셋`}>
+      <span aria-hidden="true">{label}</span>
       <select value={value} onChange={(e) => onChange(Number(e.target.value))}>
         {Array.from({ length: max }, (_, idx) => idx + 1).map(num => (
           <option key={num} value={num}>{num}</option>
@@ -84,7 +84,11 @@ export default function ComparisonTable({
                 <td>{character.owner}</td>
                 <td>
                   <div className="compare-character-cell">
-                    {character.avatar && <img src={character.avatar} alt="" />}
+                    {character.avatar && (
+                      <div className="compare-avatar-frame">
+                        <img src={character.avatar} alt="" />
+                      </div>
+                    )}
                     <div>
                       <strong>{character.name}</strong>
                       <span>Lv.{character.level}</span>
@@ -97,27 +101,27 @@ export default function ComparisonTable({
                 <td>
                   <div className="compare-preset-controls" aria-label={`${character.name} 프리셋 설정`}>
                     <PresetSelect
-                      label="장비"
+                      label="장"
                       value={selectedPresets.equipment}
                       onChange={(value) => handlePresetChange('equipment', value)}
                     />
                     <PresetSelect
-                      label="어빌"
+                      label="어"
                       value={selectedPresets.ability}
                       onChange={(value) => handlePresetChange('ability', value)}
                     />
                     <PresetSelect
-                      label="하이퍼"
+                      label="하"
                       value={selectedPresets.hyperStat}
                       onChange={(value) => handlePresetChange('hyperStat', value)}
                     />
                     <PresetSelect
-                      label="링크"
+                      label="링"
                       value={selectedPresets.linkSkill}
                       onChange={(value) => handlePresetChange('linkSkill', value)}
                     />
                     <PresetSelect
-                      label="유니온"
+                      label="유"
                       value={selectedPresets.union}
                       max={5}
                       onChange={(value) => handlePresetChange('union', value)}
