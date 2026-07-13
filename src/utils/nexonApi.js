@@ -10,13 +10,14 @@
 
 // 운영 배포에서는 프론트에 API 키를 넣지 말고 VITE_NEXON_API_PROXY_URL을 사용하세요.
 // 로컬 개발에서만 VITE_NEXON_API_KEY를 직접 사용할 수 있습니다.
-const API_KEY = import.meta.env.VITE_NEXON_API_KEY || "";
-const API_PROXY_URL = import.meta.env.VITE_NEXON_API_PROXY_URL || "";
+const ENV = import.meta.env || {};
+const API_KEY = ENV.VITE_NEXON_API_KEY || "";
+const API_PROXY_URL = ENV.VITE_NEXON_API_PROXY_URL || "";
 const BASE_URL = "https://open.api.nexon.com/maplestory/v1";
 const REQUEST_CACHE_TTL_MS = 5 * 60 * 1000;
 const MAX_CONCURRENT_REQUESTS = Math.max(
   1,
-  Number(import.meta.env.VITE_NEXON_API_CONCURRENCY || 4)
+  Number(ENV.VITE_NEXON_API_CONCURRENCY || 4)
 );
 
 const requestCache = new Map();
@@ -209,6 +210,69 @@ export async function getCharacterUnionRaider(ocid, date) {
   return fetchFromNexon("/user/union-raider", { ocid, date });
 }
 
+function parseStatNumber(value, fallback = 0) {
+  const parsed = Number.parseFloat(String(value ?? "").replace(/,/g, ""));
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function normalizeStatName(value) {
+  return String(value || "").replace(/\s+/g, "").toLowerCase().normalize("NFC");
+}
+
+function findStatValue(statEntries, { aliases = [], includes = [], excludes = [] }, fallback = 0) {
+  const normalizedAliases = aliases.map(normalizeStatName);
+  const normalizedIncludes = includes.map(normalizeStatName);
+  const normalizedExcludes = excludes.map(normalizeStatName);
+
+  const exactMatch = statEntries.find(entry => (
+    normalizedAliases.includes(normalizeStatName(entry.stat_name))
+  ));
+
+  const partialMatch = exactMatch || statEntries.find(entry => {
+    const name = normalizeStatName(entry.stat_name);
+    return (
+      normalizedIncludes.every(keyword => name.includes(keyword)) &&
+      normalizedExcludes.every(keyword => !name.includes(keyword))
+    );
+  });
+
+  return parseStatNumber(partialMatch?.stat_value, fallback);
+}
+
+export function mapFinalStatsForDashboard(finalStat = []) {
+  const statEntries = Array.isArray(finalStat) ? finalStat : [];
+
+  return {
+    str: findStatValue(statEntries, { aliases: ["STR", "힘"] }, 1000),
+    dex: findStatValue(statEntries, { aliases: ["DEX", "민첩"] }, 1000),
+    intel: findStatValue(statEntries, { aliases: ["INT", "지력"] }, 1000),
+    luk: findStatValue(statEntries, { aliases: ["LUK", "운"] }, 1000),
+    starforce: findStatValue(statEntries, { aliases: ["스타포스"] }),
+    bossDamage: findStatValue(statEntries, {
+      aliases: ["보스 데미지", "보스데미지", "보스 몬스터 데미지"],
+      includes: ["보스", "데미지"]
+    }),
+    arcaneForce: findStatValue(statEntries, { aliases: ["아케인포스"] }),
+    sacredPower: findStatValue(statEntries, { aliases: ["어센틱포스"] }),
+    attackPower: findStatValue(statEntries, { aliases: ["공격력"] }),
+    magicPower: findStatValue(statEntries, { aliases: ["마력"] }),
+    damage: findStatValue(statEntries, {
+      aliases: ["데미지"],
+      includes: ["데미지"],
+      excludes: ["보스", "최종", "크리티컬"]
+    }),
+    finalDamage: findStatValue(statEntries, {
+      aliases: ["최종 데미지", "최종데미지"],
+      includes: ["최종", "데미지"]
+    }),
+    critDamage: findStatValue(statEntries, {
+      aliases: ["크리티컬 데미지", "크리티컬데미지"],
+      includes: ["크리티컬", "데미지"]
+    }),
+    combatPower: findStatValue(statEntries, { aliases: ["전투력"] })
+  };
+}
+
 /**
  * 넥슨 Open API로 조회한 원본 데이터를 우리 대시보드 스펙 양식에 맞추어 변환합니다.
  */
@@ -262,30 +326,7 @@ export async function fetchFullCharacterData(characterName) {
     }
 
     // 7. 스탯 배열 매핑 (final_stat)
-    const statsMap = {};
-    if (stat.final_stat) {
-      stat.final_stat.forEach(item => {
-        statsMap[item.stat_name] = item.stat_value;
-      });
-    }
-
-    // 우리 앱의 stats 규격에 대응
-    const mappedStats = {
-      str: parseInt(statsMap["STR"] || statsMap["힘"]) || 1000,
-      dex: parseInt(statsMap["DEX"] || statsMap["민첩"]) || 1000,
-      intel: parseInt(statsMap["INT"] || statsMap["지력"]) || 1000,
-      luk: parseInt(statsMap["LUK"] || statsMap["운"]) || 1000,
-      starforce: parseInt(statsMap["스타포스"]) || 0,
-      bossDamage: parseInt(statsMap["보스 데미지"]) || 0,
-      arcaneForce: parseInt(statsMap["아케인포스"]) || 0,
-      sacredPower: parseInt(statsMap["어센틱포스"]) || 0,
-      // 시뮬레이터 연산용 추가 스탯
-      attackPower: parseInt(statsMap["공격력"]) || 0,
-      magicPower: parseInt(statsMap["마력"]) || 0,
-      damage: parseInt(statsMap["데미지"]) || 0,
-      finalDamage: parseInt(statsMap["최종 데미지"]) || 0,
-      critDamage: parseInt(statsMap["크리티컬 데미지"]) || 0,
-    };
+    const mappedStats = mapFinalStatsForDashboard(stat.final_stat);
 
     // 8. 장비 매핑 공통 헬퍼
     const slotMap = {
@@ -543,7 +584,7 @@ export async function fetchFullCharacterData(characterName) {
 
     const unionLevel = union.union_level || 0;
     const unionGrade = union.union_grade || "없음";
-    const combatPowerVal = parseInt(statsMap["전투력"]) || 10000000;
+    const combatPowerVal = mappedStats.combatPower || 10000000;
 
     return {
       name: basic.character_name,
@@ -552,7 +593,21 @@ export async function fetchFullCharacterData(characterName) {
       combatPower: combatPowerVal,
       currentExpRate: basic.character_exp_rate ? parseFloat(basic.character_exp_rate) : 0.0,
       avatar: basic.character_image || "/avatars/dark_knight.png",
-      stats: mappedStats,
+      stats: {
+        str: mappedStats.str,
+        dex: mappedStats.dex,
+        intel: mappedStats.intel,
+        luk: mappedStats.luk,
+        starforce: mappedStats.starforce,
+        bossDamage: mappedStats.bossDamage,
+        arcaneForce: mappedStats.arcaneForce,
+        sacredPower: mappedStats.sacredPower,
+        attackPower: mappedStats.attackPower,
+        magicPower: mappedStats.magicPower,
+        damage: mappedStats.damage,
+        finalDamage: mappedStats.finalDamage,
+        critDamage: mappedStats.critDamage
+      },
       equipment: defaultEquip,
       cashEquipment: defaultCashEquipment,
       petEquipment: pets,
