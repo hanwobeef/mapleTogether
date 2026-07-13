@@ -1,19 +1,31 @@
 import { Check, Edit, Eye } from 'lucide-react';
 import { getSimulatedSpec } from '../utils/specSimulator';
+import { getTagTone } from '../utils/tagOptions';
 import './ComparisonTable.css';
 
 function formatNumber(value) {
   return new Intl.NumberFormat().format(value || 0);
 }
 
-function getMainStat(stats = {}) {
-  const entries = [
-    ['STR', stats.str],
-    ['DEX', stats.dex],
-    ['INT', stats.intel || stats.int],
-    ['LUK', stats.luk]
-  ];
-  return entries.reduce((best, current) => ((current[1] || 0) > (best[1] || 0) ? current : best), entries[0]);
+const DEFAULT_SELECTED_PRESETS = {
+  equipment: 1,
+  ability: 1,
+  hyperStat: 1,
+  linkSkill: 1,
+  union: 1
+};
+
+function PresetSelect({ label, value, max = 3, onChange }) {
+  return (
+    <label className="compare-preset-select">
+      <span>{label}</span>
+      <select value={value} onChange={(e) => onChange(Number(e.target.value))}>
+        {Array.from({ length: max }, (_, idx) => idx + 1).map(num => (
+          <option key={num} value={num}>{num}</option>
+        ))}
+      </select>
+    </label>
+  );
 }
 
 export default function ComparisonTable({
@@ -21,7 +33,8 @@ export default function ComparisonTable({
   selectedIds,
   onToggleCandidate,
   onDetailClick,
-  onEditClick
+  onEditClick,
+  onUpdatePresets
 }) {
   return (
     <div className="comparison-table-wrapper">
@@ -34,7 +47,7 @@ export default function ComparisonTable({
             <th>직업</th>
             <th>월드</th>
             <th>전투력</th>
-            <th>주스탯</th>
+            <th>프리셋</th>
             <th>보공</th>
             <th>크뎀</th>
             <th>포스</th>
@@ -47,8 +60,16 @@ export default function ComparisonTable({
           {characters.map(character => {
             const simulated = getSimulatedSpec(character);
             const stats = simulated.stats || {};
-            const [mainStatName, mainStatValue] = getMainStat(stats);
             const isSelected = selectedIds.includes(character.id);
+            const selectedPresets = {
+              ...DEFAULT_SELECTED_PRESETS,
+              ...(character.selectedPresets || {})
+            };
+
+            const handlePresetChange = (type, presetNo) => {
+              onUpdatePresets?.(character.id, type, presetNo);
+            };
+
             return (
               <tr key={character.id} className={isSelected ? 'selected' : ''}>
                 <td>
@@ -73,7 +94,36 @@ export default function ComparisonTable({
                 <td>{character.job}</td>
                 <td>{character.worldName || '-'}</td>
                 <td className="numeric highlight">{formatNumber(simulated.combatPower)}</td>
-                <td className="numeric">{mainStatName} {formatNumber(mainStatValue)}</td>
+                <td>
+                  <div className="compare-preset-controls" aria-label={`${character.name} 프리셋 설정`}>
+                    <PresetSelect
+                      label="장비"
+                      value={selectedPresets.equipment}
+                      onChange={(value) => handlePresetChange('equipment', value)}
+                    />
+                    <PresetSelect
+                      label="어빌"
+                      value={selectedPresets.ability}
+                      onChange={(value) => handlePresetChange('ability', value)}
+                    />
+                    <PresetSelect
+                      label="하이퍼"
+                      value={selectedPresets.hyperStat}
+                      onChange={(value) => handlePresetChange('hyperStat', value)}
+                    />
+                    <PresetSelect
+                      label="링크"
+                      value={selectedPresets.linkSkill}
+                      onChange={(value) => handlePresetChange('linkSkill', value)}
+                    />
+                    <PresetSelect
+                      label="유니온"
+                      value={selectedPresets.union}
+                      max={5}
+                      onChange={(value) => handlePresetChange('union', value)}
+                    />
+                  </div>
+                </td>
                 <td className="numeric">{stats.bossDamage || 0}%</td>
                 <td className="numeric">{stats.critDamage || 0}%</td>
                 <td className="numeric">{stats.arcaneForce || 0} / {stats.sacredPower || 0}</td>
@@ -81,7 +131,7 @@ export default function ComparisonTable({
                 <td>
                   <div className="compare-tags">
                     {(character.tags || []).length > 0
-                      ? character.tags.map(tag => <span key={tag}>{tag}</span>)
+                      ? character.tags.map(tag => <span key={tag} className={`tag-tone-${getTagTone(tag)}`}>{tag}</span>)
                       : <span className="muted">없음</span>}
                   </div>
                 </td>

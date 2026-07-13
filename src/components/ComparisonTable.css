@@ -9,7 +9,7 @@
 .comparison-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1180px;
+  min-width: 1360px;
 }
 
 .comparison-table th,
@@ -46,17 +46,18 @@
 .compare-character-cell {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  min-width: 150px;
+  gap: 0.8rem;
+  min-width: 190px;
 }
 
 .compare-character-cell img {
-  width: 38px;
-  height: 38px;
+  width: 62px;
+  height: 62px;
   object-fit: contain;
-  border-radius: 6px;
+  border-radius: 8px;
   background-color: var(--bg-avatar-frame);
   border: 1px solid var(--border-avatar-frame);
+  padding: 2px;
 }
 
 .compare-character-cell div {
@@ -84,6 +85,48 @@
 .numeric.highlight {
   color: var(--accent-gold);
   font-weight: 700;
+}
+
+.compare-preset-controls {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(58px, 1fr));
+  gap: 0.35rem;
+  min-width: 330px;
+}
+
+.compare-preset-select {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.compare-preset-select span {
+  color: var(--text-muted);
+  font-size: 0.64rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.compare-preset-select select {
+  width: 100%;
+  height: 30px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.compare-preset-select select:hover,
+.compare-preset-select select:focus {
+  border-color: var(--brand-cyan);
+  background-color: var(--bg-card-hover);
 }
 
 .candidate-toggle,
@@ -117,9 +160,9 @@
 }
 
 .compare-tags span:not(.muted) {
-  color: var(--brand-cyan);
-  background-color: color-mix(in srgb, var(--brand-cyan) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--brand-cyan) 25%, transparent);
+  color: var(--tag-fg, var(--brand-cyan));
+  background-color: var(--tag-bg, color-mix(in srgb, var(--brand-cyan) 12%, transparent));
+  border: 1px solid var(--tag-border, color-mix(in srgb, var(--brand-cyan) 25%, transparent));
   border-radius: 999px;
   padding: 0.15rem 0.45rem;
   font-size: 0.7rem;

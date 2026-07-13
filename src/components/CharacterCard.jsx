@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Compass, Edit, Trash2, RefreshCw, GripVertical } from 'lucide-react';
 import { getSimulatedSpec } from '../utils/specSimulator';
+import { getTagTone } from '../utils/tagOptions';
 import './CharacterCard.css';
 
 export default function CharacterCard({ 
@@ -198,7 +199,7 @@ export default function CharacterCard({
         <span className="owner-badge">{owner || '미지정'}</span>
         {tags.length > 0 && (
           <div className="tag-list">
-            {tags.slice(0, 3).map(tag => <span key={tag}>{tag}</span>)}
+            {tags.slice(0, 3).map(tag => <span key={tag} className={`tag-tone-${getTagTone(tag)}`}>{tag}</span>)}
             {tags.length > 3 && <span>+{tags.length - 3}</span>}
           </div>
         )}

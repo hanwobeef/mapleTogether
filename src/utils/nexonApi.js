@@ -161,6 +161,20 @@ export async function getCharacterItemEquipment(ocid, date) {
 }
 
 /**
+ * 캐릭터 캐시 장비(코디) 정보를 가져옵니다.
+ */
+export async function getCharacterCashItemEquipment(ocid, date) {
+  return fetchFromNexon("/character/cashitem-equipment", { ocid, date });
+}
+
+/**
+ * 캐릭터 펫 장비 정보를 가져옵니다.
+ */
+export async function getCharacterPetEquipment(ocid, date) {
+  return fetchFromNexon("/character/pet-equipment", { ocid, date });
+}
+
+/**
  * 캐릭터 어빌리티 정보를 가져옵니다.
  */
 export async function getCharacterAbility(ocid, date) {
@@ -214,9 +228,11 @@ export async function fetchFullCharacterData(characterName) {
     }
 
     // 3. 결정된 최신 기준 날짜로 스탯 및 모든 프리셋 정보 병렬 조회
-    const [stat, equipment, ability, hyperStat, linkSkill, union, unionRaider] = await Promise.all([
+    const [stat, equipment, cashEquipment, petEquipment, ability, hyperStat, linkSkill, union, unionRaider] = await Promise.all([
       getCharacterStat(ocid, latestDate),
       getCharacterItemEquipment(ocid, latestDate),
+      getCharacterCashItemEquipment(ocid, latestDate).catch(() => ({})),
+      getCharacterPetEquipment(ocid, latestDate).catch(() => ({})),
       getCharacterAbility(ocid, latestDate).catch(() => ({})),
       getCharacterHyperStat(ocid, latestDate).catch(() => ({})),
       getCharacterLinkSkill(ocid, latestDate).catch(() => ({})),
@@ -365,6 +381,89 @@ export async function fetchFullCharacterData(characterName) {
       equipmentPresets.preset3 = defaultEquip;
     }
 
+    const mapCashItemList = (itemList) => {
+      if (!Array.isArray(itemList)) return [];
+      return itemList
+        .filter(item => item && (item.cash_item_name || item.item_name))
+        .map(item => ({
+          name: item.cash_item_name || item.item_name,
+          icon: item.cash_item_icon || item.item_icon,
+          part: item.cash_item_equipment_part || item.item_equipment_part || item.cash_item_equipment_slot || "코디",
+          slot: item.cash_item_equipment_slot || item.item_equipment_slot || item.cash_item_equipment_part || "코디",
+          description: item.cash_item_description || item.item_description || "",
+          label: item.cash_item_label || "",
+          dateExpire: item.date_expire || null,
+          dateOptionExpire: item.date_option_expire || null,
+          options: item.cash_item_option || item.item_option || []
+        }));
+    };
+
+    const activeCashPresetNo = cashEquipment.preset_no ? parseInt(cashEquipment.preset_no) : 1;
+    const cashEquipmentPresets = {
+      preset1: mapCashItemList(cashEquipment.cash_item_equipment_preset_1),
+      preset2: mapCashItemList(cashEquipment.cash_item_equipment_preset_2),
+      preset3: mapCashItemList(cashEquipment.cash_item_equipment_preset_3)
+    };
+    const defaultCashEquipment = Array.isArray(cashEquipment.cash_item_equipment_base)
+      ? mapCashItemList(cashEquipment.cash_item_equipment_base)
+      : (cashEquipmentPresets[`preset${activeCashPresetNo}`] || []);
+
+    if (cashEquipmentPresets.preset1.length === 0 && defaultCashEquipment.length > 0) {
+      cashEquipmentPresets.preset1 = defaultCashEquipment;
+    }
+    if (cashEquipmentPresets.preset2.length === 0 && defaultCashEquipment.length > 0) {
+      cashEquipmentPresets.preset2 = defaultCashEquipment;
+    }
+    if (cashEquipmentPresets.preset3.length === 0 && defaultCashEquipment.length > 0) {
+      cashEquipmentPresets.preset3 = defaultCashEquipment;
+    }
+
+    const normalizePetList = (value) => {
+      if (!value) return [];
+      if (Array.isArray(value)) return value.filter(Boolean);
+      if (typeof value === "object") {
+        return Object.entries(value)
+          .filter(([key, item]) => item && !key.toLowerCase().includes("icon"))
+          .map(([key, item]) => (
+            typeof item === "object"
+              ? item
+              : { name: item, icon: value[`${key}_icon`] || "" }
+          ));
+      }
+      return [value];
+    };
+
+    const mapPetEquipment = (petIndex) => {
+      const name = petEquipment[`pet_${petIndex}_name`];
+      const nickname = petEquipment[`pet_${petIndex}_nickname`];
+      const icon = petEquipment[`pet_${petIndex}_icon`];
+      const equipmentItem = petEquipment[`pet_${petIndex}_equipment`];
+      const autoSkill = petEquipment[`pet_${petIndex}_auto_skill`];
+      const petType = petEquipment[`pet_${petIndex}_pet_type`];
+      const skills = petEquipment[`pet_${petIndex}_skill`];
+
+      if (!name && !nickname && !icon && !equipmentItem) return null;
+
+      return {
+        slot: petIndex,
+        name: name || nickname || `${petIndex}번 펫`,
+        nickname: nickname || "",
+        icon: icon || "",
+        type: petType || "",
+        description: petEquipment[`pet_${petIndex}_description`] || "",
+        equipment: equipmentItem ? {
+          name: equipmentItem.item_name || equipmentItem.pet_equipment_name || equipmentItem.name || "펫 장비",
+          icon: equipmentItem.item_icon || equipmentItem.pet_equipment_icon || equipmentItem.icon || "",
+          description: equipmentItem.item_description || equipmentItem.pet_equipment_description || "",
+          options: equipmentItem.item_option || equipmentItem.pet_equipment_option || []
+        } : null,
+        autoSkill: normalizePetList(autoSkill),
+        skills: normalizePetList(skills)
+      };
+    };
+
+    const pets = [1, 2, 3].map(mapPetEquipment).filter(Boolean);
+
     // 9. 어빌리티 프리셋 파싱
     const activeAbilityPresetNo = ability.preset_no ? parseInt(ability.preset_no) : 1;
     const mapAbilityPreset = (presetObj) => {
@@ -455,12 +554,15 @@ export async function fetchFullCharacterData(characterName) {
       avatar: basic.character_image || "/avatars/dark_knight.png",
       stats: mappedStats,
       equipment: defaultEquip,
+      cashEquipment: defaultCashEquipment,
+      petEquipment: pets,
       worldName: basic.world_name,
       expHistory: expRateHistory,
       
       // 프리셋 풀 데이터
       presets: {
         equipment: equipmentPresets,
+        cashEquipment: cashEquipmentPresets,
         ability: abilityPresets,
         hyperStat: hyperStatPresets,
         linkSkill: linkSkillPresets,
@@ -476,6 +578,7 @@ export async function fetchFullCharacterData(characterName) {
       // API 조회 시점에 실제로 활성화되어 있던 프리셋 번호 (시뮬레이터용 원본 기준점)
       activePresets: {
         equipment: activeEquipPresetNo,
+        cashEquipment: activeCashPresetNo,
         ability: activeAbilityPresetNo,
         hyperStat: activeHyperPresetNo,
         linkSkill: activeLinkPresetNo,
@@ -485,6 +588,7 @@ export async function fetchFullCharacterData(characterName) {
       // 기본적으로 활성화되어 있는 현재 프리셋 번호
       selectedPresets: {
         equipment: activeEquipPresetNo,
+        cashEquipment: activeCashPresetNo,
         ability: activeAbilityPresetNo,
         hyperStat: activeHyperPresetNo,
         linkSkill: activeLinkPresetNo,

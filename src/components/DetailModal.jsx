@@ -120,6 +120,8 @@ export default function DetailModal({ character, onClose, onUpdatePresets, onRef
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hoveredItem, setHoveredItem] = useState(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [selectedItemDetail, setSelectedItemDetail] = useState(null);
+  const [inventoryTab, setInventoryTab] = useState('equipment');
 
   const handleRefreshClick = async () => {
     if (isRefreshing) return;
@@ -144,21 +146,35 @@ export default function DetailModal({ character, onClose, onUpdatePresets, onRef
   };
 
   // 기존 캐릭터와의 하위 호환성을 위한 안전망 설정
-  const safePresets = presets || {
+  const defaultPresets = {
     equipment: { preset1: {}, preset2: {}, preset3: {} },
+    cashEquipment: { preset1: [], preset2: [], preset3: [] },
     ability: { preset1: [], preset2: [], preset3: [] },
     hyperStat: { preset1: [], preset2: [], preset3: [] },
     linkSkill: { preset1: [], preset2: [], preset3: [] },
     union: { preset1: [], preset2: [], preset3: [], preset4: [], preset5: [] }
   };
 
-  const safeSelectedPresets = selectedPresets || {
+  const safePresets = {
+    ...defaultPresets,
+    ...(presets || {}),
+    equipment: { ...defaultPresets.equipment, ...(presets?.equipment || {}) },
+    cashEquipment: { ...defaultPresets.cashEquipment, ...(presets?.cashEquipment || {}) },
+    ability: { ...defaultPresets.ability, ...(presets?.ability || {}) },
+    hyperStat: { ...defaultPresets.hyperStat, ...(presets?.hyperStat || {}) },
+    linkSkill: { ...defaultPresets.linkSkill, ...(presets?.linkSkill || {}) },
+    union: { ...defaultPresets.union, ...(presets?.union || {}) }
+  };
+
+  const defaultSelectedPresets = {
     equipment: 1,
+    cashEquipment: 1,
     ability: 1,
     hyperStat: 1,
     linkSkill: 1,
     union: 1
   };
+  const safeSelectedPresets = { ...defaultSelectedPresets, ...(selectedPresets || {}) };
   const safeActivePresets = activePresets || safeSelectedPresets;
   const isSimulatedPreset = (
     safeActivePresets.equipment !== safeSelectedPresets.equipment ||
@@ -180,6 +196,11 @@ export default function DetailModal({ character, onClose, onUpdatePresets, onRef
   const currentHyperStat = (safePresets.hyperStat && safePresets.hyperStat[`preset${safeSelectedPresets.hyperStat}`]) || [];
   const currentLinkSkill = (safePresets.linkSkill && safePresets.linkSkill[`preset${safeSelectedPresets.linkSkill}`]) || [];
   const currentUnion = (safePresets.union && safePresets.union[`preset${safeSelectedPresets.union}`]) || [];
+  const currentCashEquipment = (
+    safePresets.cashEquipment &&
+    safePresets.cashEquipment[`preset${safeSelectedPresets.cashEquipment}`]
+  ) || character.cashEquipment || [];
+  const currentPets = Array.isArray(character.petEquipment) ? character.petEquipment : [];
 
   // 프리셋에 따른 스펙/전투력 시뮬레이션 계산
   const { combatPower: currentCombatPower, stats: currentStats } = getSimulatedSpec(character);
@@ -223,6 +244,126 @@ export default function DetailModal({ character, onClose, onUpdatePresets, onRef
     if (clean.includes('에픽') || clean.includes('epic')) return 'epic';
     if (clean.includes('레어') || clean.includes('rare')) return 'rare';
     return 'normal';
+  };
+
+  const renderEquipmentTooltipContent = (item, slotName) => {
+    const potentialGrade = getTooltipGradeClass(item.grade);
+    const addPotentialGrade = getTooltipGradeClass(item.addPotentialGrade);
+    const starforceCount = Math.min(item.starforce || 0, 25);
+
+    return (
+      <>
+        {starforceCount > 0 && (
+          <div className="tooltip-stars">
+            {Array.from({ length: Math.ceil(starforceCount / 15) }).map((_, rowIndex) => (
+              <span key={rowIndex} className="tooltip-star-row">
+                {Array.from({
+                  length: Math.ceil(Math.min(15, starforceCount - rowIndex * 15) / 5)
+                }).map((__, groupIndex) => {
+                  const remainingStars = starforceCount - rowIndex * 15 - groupIndex * 5;
+                  return (
+                    <span key={groupIndex} className="tooltip-star-group">
+                      {Array.from({ length: Math.min(5, remainingStars) }).map((___, starIndex) => (
+                        <span key={starIndex} className="tooltip-star">★</span>
+                      ))}
+                    </span>
+                  );
+                })}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="tooltip-item-name-row">
+          <h4 className="tooltip-item-name">{getCleanItemName(item)}</h4>
+          {item.grade && (
+            <span className="tooltip-grade-badge">({item.grade} 아이템)</span>
+          )}
+        </div>
+
+        <div className="tooltip-divider" />
+
+        <div className="tooltip-body-main">
+          <div className="tooltip-item-icon-wrapper">
+            {typeof item === 'object' && item.icon ? (
+              <img src={item.icon} alt={item.name} className="tooltip-item-icon" />
+            ) : (
+              <div className="tooltip-icon-placeholder" />
+            )}
+          </div>
+          <div className="tooltip-item-meta">
+            <div><span className="meta-label">장비분류 :</span> {slotName}</div>
+            <div><span className="meta-label">교환설정 :</span> 교환 불가</div>
+            {item.scrollUpgrade && (
+              <div><span className="meta-label">업그레이드 횟수 :</span> {item.scrollUpgrade}</div>
+            )}
+          </div>
+        </div>
+
+        {typeof item === 'object' && item.totalOption && Object.keys(item.totalOption).length > 0 && (
+          <>
+            <div className="tooltip-divider" />
+            <div className="tooltip-stats-list">
+              {renderStatRow(item, 'str', 'STR')}
+              {renderStatRow(item, 'dex', 'DEX')}
+              {renderStatRow(item, 'int', 'INT')}
+              {renderStatRow(item, 'intel', 'INT')}
+              {renderStatRow(item, 'luk', 'LUK')}
+              {renderStatRow(item, 'max_hp', '최대 HP')}
+              {renderStatRow(item, 'attack_power', '공격력')}
+              {renderStatRow(item, 'magic_power', '마력')}
+              {renderStatRow(item, 'boss_damage', '보스 데미지', '%')}
+              {renderStatRow(item, 'ignore_monster_armor', '몬스터 방어율 무시', '%')}
+              {renderStatRow(item, 'all_stat', '올스탯', '%')}
+            </div>
+          </>
+        )}
+
+        {typeof item === 'object' && item.potentials && item.potentials.length > 0 && (
+          <>
+            <div className="tooltip-divider" />
+            <div className={`tooltip-potentials-section potential-grade-${potentialGrade}`}>
+              <div className="potentials-title">■ 잠재능력</div>
+              {item.potentials.map((line, idx) => (
+                <div key={idx} className="potential-line">{line}</div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {typeof item === 'object' && item.addPotentials && item.addPotentials.length > 0 && (
+          <>
+            <div className="tooltip-divider" />
+            <div className={`tooltip-potentials-section additional potential-grade-${addPotentialGrade}`}>
+              <div className="potentials-title">■ 에디셔널 잠재능력</div>
+              {item.addPotentials.map((line, idx) => (
+                <div key={idx} className="potential-line">{line}</div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {typeof item === 'string' && (
+          <>
+            <div className="tooltip-divider" />
+            <div className="tooltip-fallback-info">
+              <p>기존 캐시 데이터 형식의 아이템입니다.</p>
+              <p className="fallback-note">상세 정보를 보시려면 캐릭터 정보를 한번 [정보 갱신] 해주세요.</p>
+            </div>
+          </>
+        )}
+      </>
+    );
+  };
+
+  const getOptionText = (option) => {
+    if (!option) return '';
+    if (typeof option === 'string') return option;
+
+    const label = option.option_type || option.option_name || option.option || option.stat_type || '';
+    const value = option.option_value || option.value || option.stat_value || option.skill_name || option.name || '';
+    if (label && value) return `${label}: ${value}`;
+    return label || value || '';
   };
 
   return (
@@ -291,6 +432,25 @@ export default function DetailModal({ character, onClose, onUpdatePresets, onRef
                           value={num} 
                           checked={safeSelectedPresets.equipment === num}
                           onChange={() => onUpdatePresets(id, 'equipment', num)}
+                        />
+                        <span>{num}번</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 코디 프리셋 */}
+                <div className="preset-radio-group mt-3">
+                  <span className="group-label">코디 프리셋</span>
+                  <div className="radio-options">
+                    {[1, 2, 3].map(num => (
+                      <label key={num} className={`radio-label ${safeSelectedPresets.cashEquipment === num ? 'active' : ''}`}>
+                        <input
+                          type="radio"
+                          name="cashEquipment"
+                          value={num}
+                          checked={safeSelectedPresets.cashEquipment === num}
+                          onChange={() => onUpdatePresets(id, 'cashEquipment', num)}
                         />
                         <span>{num}번</span>
                       </label>
@@ -393,62 +553,204 @@ export default function DetailModal({ character, onClose, onUpdatePresets, onRef
               
               <div className="equip-inventory-wrapper">
                 <div className="inventory-header">
-                  <div className="inventory-tab active">장비</div>
-                  <div className="inventory-tab disabled">코디</div>
-                  <div className="inventory-tab disabled">펫</div>
+                  <button
+                    type="button"
+                    className={`inventory-tab ${inventoryTab === 'equipment' ? 'active' : ''}`}
+                    onClick={() => setInventoryTab('equipment')}
+                  >
+                    장비
+                  </button>
+                  <button
+                    type="button"
+                    className={`inventory-tab ${inventoryTab === 'cash' ? 'active' : ''}`}
+                    onClick={() => setInventoryTab('cash')}
+                  >
+                    코디
+                  </button>
+                  <button
+                    type="button"
+                    className={`inventory-tab ${inventoryTab === 'pet' ? 'active' : ''}`}
+                    onClick={() => setInventoryTab('pet')}
+                  >
+                    펫
+                  </button>
                 </div>
-                <div className="equip-inventory-grid">
-                  {/* 중앙 캐릭터 아바타 배치 영역 */}
-                  <div className="equip-avatar-area" style={{ gridColumn: 3, gridRow: '1 / span 4' }}>
-                    <div className="avatar-aura"></div>
-                    <img src={avatar} alt={name} className="equip-avatar-img" />
+                {inventoryTab === 'equipment' && (
+                  <div className="equip-inventory-grid">
+                    {/* 중앙 캐릭터 아바타 배치 영역 */}
+                    <div className="equip-avatar-area" style={{ gridColumn: 3, gridRow: '1 / span 4' }}>
+                      <div className="avatar-aura"></div>
+                      <img src={avatar} alt={name} className="equip-avatar-img" />
+                    </div>
+
+                    {/* 장비 슬롯 렌더링 */}
+                    {SLOT_LAYOUT.map((slot) => {
+                      const itemText = currentEquip[slot.key];
+                      const gradeClass = getItemGradeClass(itemText);
+                      const cleanName = getCleanItemName(itemText);
+                      const shortName = getShortItemName(itemText);
+                      const starforce = getItemStarforce(itemText);
+
+                      return (
+                        <div 
+                          key={slot.key}
+                          className={`equip-slot ${gradeClass}`}
+                          style={{ gridColumn: slot.col, gridRow: slot.row }}
+                          onMouseEnter={(e) => {
+                            if (itemText) {
+                              setHoveredItem({ item: itemText, slotName: slot.name });
+                              setMousePos({ x: e.clientX, y: e.clientY });
+                            }
+                          }}
+                          onMouseMove={(e) => {
+                            if (itemText) {
+                              setMousePos({ x: e.clientX, y: e.clientY });
+                            }
+                          }}
+                          onMouseLeave={() => setHoveredItem(null)}
+                          onClick={() => {
+                            if (itemText) {
+                              setSelectedItemDetail({ item: itemText, slotName: slot.name });
+                            }
+                          }}
+                        >
+                          {itemText ? (
+                            <div className="equip-slot-inner populated">
+                              {/* 진짜 장비 이미지 아이콘 렌더링 (없을 때만 한글 약칭 노출) */}
+                              {typeof itemText === 'object' && itemText.icon ? (
+                                <img src={itemText.icon} alt={cleanName} className="slot-item-icon" />
+                              ) : (
+                                <span className="slot-item-name">{shortName}</span>
+                              )}
+                              {starforce && <span className="slot-starforce">★{starforce}</span>}
+                            </div>
+                          ) : (
+                            <div className="equip-slot-inner empty">
+                              <span className="slot-placeholder">{slot.label}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
+                )}
 
-                  {/* 장비 슬롯 렌더링 */}
-                  {SLOT_LAYOUT.map((slot) => {
-                    const itemText = currentEquip[slot.key];
-                    const gradeClass = getItemGradeClass(itemText);
-                    const cleanName = getCleanItemName(itemText);
-                    const shortName = getShortItemName(itemText);
-                    const starforce = getItemStarforce(itemText);
-
-                    return (
-                      <div 
-                        key={slot.key}
-                        className={`equip-slot ${gradeClass}`}
-                        style={{ gridColumn: slot.col, gridRow: slot.row }}
-                        onMouseEnter={(e) => {
-                          if (itemText) {
-                            setHoveredItem({ item: itemText, slotName: slot.name });
-                            setMousePos({ x: e.clientX, y: e.clientY });
-                          }
-                        }}
-                        onMouseMove={(e) => {
-                          if (itemText) {
-                            setMousePos({ x: e.clientX, y: e.clientY });
-                          }
-                        }}
-                        onMouseLeave={() => setHoveredItem(null)}
-                      >
-                        {itemText ? (
-                          <div className="equip-slot-inner populated">
-                            {/* 진짜 장비 이미지 아이콘 렌더링 (없을 때만 한글 약칭 노출) */}
-                            {typeof itemText === 'object' && itemText.icon ? (
-                              <img src={itemText.icon} alt={cleanName} className="slot-item-icon" />
-                            ) : (
-                              <span className="slot-item-name">{shortName}</span>
-                            )}
-                            {starforce && <span className="slot-starforce">★{starforce}</span>}
+                {inventoryTab === 'cash' && (
+                  <div className="cash-equipment-panel">
+                    {currentCashEquipment.length > 0 ? (
+                      <div className="cash-item-grid">
+                        {currentCashEquipment.map((item, idx) => (
+                          <div key={`${item.slot}-${item.name}-${idx}`} className="cash-item-card">
+                            <div className="cash-item-icon-wrap">
+                              {item.icon ? (
+                                <img src={item.icon} alt={item.name} className="cash-item-icon" />
+                              ) : (
+                                <div className="cash-item-icon-placeholder" />
+                              )}
+                            </div>
+                            <div className="cash-item-meta">
+                              <div className="cash-item-part">{item.part || item.slot}</div>
+                              <div className="cash-item-name">{item.name}</div>
+                              <div className="cash-item-sub">{item.slot}</div>
+                              {item.label && <div className="cash-item-label">{item.label}</div>}
+                              {item.dateExpire && item.dateExpire !== 'expired' && (
+                                <div className="cash-item-expire">만료: {item.dateExpire.slice(0, 10)}</div>
+                              )}
+                              {Array.isArray(item.options) && item.options.length > 0 && (
+                                <div className="cash-item-options">
+                                  {item.options.map((option, optionIdx) => {
+                                    const text = getOptionText(option);
+                                    return text ? <span key={optionIdx}>{text}</span> : null;
+                                  })}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        ) : (
-                          <div className="equip-slot-inner empty">
-                            <span className="slot-placeholder">{slot.label}</span>
-                          </div>
-                        )}
+                        ))}
                       </div>
-                    );
-                  })}
-                </div>
+                    ) : (
+                      <div className="inventory-empty-state">장착 중인 코디 정보가 없습니다.</div>
+                    )}
+                  </div>
+                )}
+
+                {inventoryTab === 'pet' && (
+                  <div className="pet-equipment-panel">
+                    {currentPets.length > 0 ? (
+                      <div className="pet-card-grid">
+                        {currentPets.map((pet) => (
+                          <div key={pet.slot} className="pet-card">
+                            <div className="pet-card-header">
+                              <div className="pet-icon-wrap">
+                                {pet.icon ? (
+                                  <img src={pet.icon} alt={pet.name} className="pet-icon" />
+                                ) : (
+                                  <div className="pet-icon-placeholder" />
+                                )}
+                              </div>
+                              <div className="pet-name-block">
+                                <span className="pet-slot">{pet.slot}번 펫</span>
+                                <strong>{pet.nickname || pet.name}</strong>
+                                {pet.nickname && pet.name !== pet.nickname && <span>{pet.name}</span>}
+                                {pet.type && <span>{pet.type}</span>}
+                              </div>
+                            </div>
+
+                            {pet.equipment ? (
+                              <div className="pet-equipment-box">
+                                <span className="pet-section-label">펫 장비</span>
+                                <div className="pet-equipment-content">
+                                  {pet.equipment.icon ? (
+                                    <img src={pet.equipment.icon} alt={pet.equipment.name} className="pet-equipment-icon" />
+                                  ) : (
+                                    <div className="pet-equipment-icon placeholder" />
+                                  )}
+                                  <div>
+                                    <strong>{pet.equipment.name}</strong>
+                                    {Array.isArray(pet.equipment.options) && pet.equipment.options.length > 0 && (
+                                      <div className="pet-option-list">
+                                        {pet.equipment.options.map((option, optionIdx) => {
+                                          const text = getOptionText(option);
+                                          return text ? <span key={optionIdx}>{text}</span> : null;
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="pet-empty-box">장착한 펫 장비가 없습니다.</div>
+                            )}
+
+                            {pet.autoSkill.length > 0 && (
+                              <div className="pet-skill-box">
+                                <span className="pet-section-label">자동 스킬</span>
+                                <div className="pet-skill-list">
+                                  {pet.autoSkill.map((skill, skillIdx) => (
+                                    <span key={skillIdx}>{getOptionText(skill) || skill.skill_name || skill.name}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {pet.skills.length > 0 && (
+                              <div className="pet-skill-box">
+                                <span className="pet-section-label">펫 스킬</span>
+                                <div className="pet-skill-list">
+                                  {pet.skills.map((skill, skillIdx) => (
+                                    <span key={skillIdx}>{getOptionText(skill) || skill.skill_name || skill.name}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="inventory-empty-state">장착 중인 펫 정보가 없습니다.</div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -609,7 +911,6 @@ export default function DetailModal({ character, onClose, onUpdatePresets, onRef
           (() => {
             const tooltipPosition = getTooltipPosition(mousePos);
             const potentialGrade = getTooltipGradeClass(hoveredItem.item.grade);
-            const addPotentialGrade = getTooltipGradeClass(hoveredItem.item.addPotentialGrade);
             return (
           <div 
             className={`equip-tooltip-box grade-${potentialGrade}`}
@@ -621,115 +922,29 @@ export default function DetailModal({ character, onClose, onUpdatePresets, onRef
               pointerEvents: 'none'
             }}
           >
-            {/* Tooltip Header: Stars */}
-            {hoveredItem.item.starforce && (
-              <div className="tooltip-stars">
-                {Array.from({ length: Math.ceil(Math.min(hoveredItem.item.starforce, 25) / 15) }).map((_, rowIndex) => (
-                  <span key={rowIndex} className="tooltip-star-row">
-                    {Array.from({
-                      length: Math.ceil(Math.min(15, Math.min(hoveredItem.item.starforce, 25) - rowIndex * 15) / 5)
-                    }).map((__, groupIndex) => {
-                      const remainingStars = Math.min(hoveredItem.item.starforce, 25) - rowIndex * 15 - groupIndex * 5;
-                      return (
-                        <span key={groupIndex} className="tooltip-star-group">
-                          {Array.from({ length: Math.min(5, remainingStars) }).map((___, starIndex) => (
-                            <span key={starIndex} className="tooltip-star">★</span>
-                          ))}
-                        </span>
-                      );
-                    })}
-                  </span>
-                ))}
-              </div>
-            )}
-            
-            {/* Tooltip Header: Name & Grade */}
-            <div className="tooltip-item-name-row">
-              <h4 className="tooltip-item-name">{getCleanItemName(hoveredItem.item)}</h4>
-              {hoveredItem.item.grade && (
-                <span className="tooltip-grade-badge">({hoveredItem.item.grade} 아이템)</span>
-              )}
-            </div>
-            
-            <div className="tooltip-divider" />
-            
-            {/* Tooltip Body: Icon & 분류 */}
-            <div className="tooltip-body-main">
-              <div className="tooltip-item-icon-wrapper">
-                {typeof hoveredItem.item === 'object' && hoveredItem.item.icon ? (
-                  <img src={hoveredItem.item.icon} alt={hoveredItem.item.name} className="tooltip-item-icon" />
-                ) : (
-                  <div className="tooltip-icon-placeholder" />
-                )}
-              </div>
-              <div className="tooltip-item-meta">
-                <div><span className="meta-label">장비분류 :</span> {hoveredItem.slotName}</div>
-                <div><span className="meta-label">교환설정 :</span> 교환 불가</div>
-                {hoveredItem.item.scrollUpgrade && (
-                  <div><span className="meta-label">업그레이드 횟수 :</span> {hoveredItem.item.scrollUpgrade}</div>
-                )}
-              </div>
-            </div>
-            
-            {/* Stats list */}
-            {typeof hoveredItem.item === 'object' && hoveredItem.item.totalOption && Object.keys(hoveredItem.item.totalOption).length > 0 && (
-              <>
-                <div className="tooltip-divider" />
-                <div className="tooltip-stats-list">
-                  {renderStatRow(hoveredItem.item, 'str', 'STR')}
-                  {renderStatRow(hoveredItem.item, 'dex', 'DEX')}
-                  {renderStatRow(hoveredItem.item, 'int', 'INT')}
-                  {renderStatRow(hoveredItem.item, 'intel', 'INT')}
-                  {renderStatRow(hoveredItem.item, 'luk', 'LUK')}
-                  {renderStatRow(hoveredItem.item, 'max_hp', '최대 HP')}
-                  {renderStatRow(hoveredItem.item, 'attack_power', '공격력')}
-                  {renderStatRow(hoveredItem.item, 'magic_power', '마력')}
-                  {renderStatRow(hoveredItem.item, 'boss_damage', '보스 데미지', '%')}
-                  {renderStatRow(hoveredItem.item, 'ignore_monster_armor', '몬스터 방어율 무시', '%')}
-                  {renderStatRow(hoveredItem.item, 'all_stat', '올스탯', '%')}
-                </div>
-              </>
-            )}
-            
-            {/* Potentials */}
-            {typeof hoveredItem.item === 'object' && hoveredItem.item.potentials && hoveredItem.item.potentials.length > 0 && (
-              <>
-                <div className="tooltip-divider" />
-                <div className={`tooltip-potentials-section potential-grade-${potentialGrade}`}>
-                  <div className="potentials-title">■ 잠재능력</div>
-                  {hoveredItem.item.potentials.map((line, idx) => (
-                    <div key={idx} className="potential-line">{line}</div>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {/* Additional Potentials */}
-            {typeof hoveredItem.item === 'object' && hoveredItem.item.addPotentials && hoveredItem.item.addPotentials.length > 0 && (
-              <>
-                <div className="tooltip-divider" />
-                <div className={`tooltip-potentials-section additional potential-grade-${addPotentialGrade}`}>
-                  <div className="potentials-title">■ 에디셔널 잠재능력</div>
-                  {hoveredItem.item.addPotentials.map((line, idx) => (
-                    <div key={idx} className="potential-line">{line}</div>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {/* String Fallback for old characters */}
-            {typeof hoveredItem.item === 'string' && (
-              <>
-                <div className="tooltip-divider" />
-                <div className="tooltip-fallback-info">
-                  <p>기존 캐시 데이터 형식의 아이템입니다.</p>
-                  <p className="fallback-note">상세 정보를 보시려면 캐릭터 정보를 한번 [정보 갱신] 해주세요.</p>
-                </div>
-              </>
-            )}
+            {renderEquipmentTooltipContent(hoveredItem.item, hoveredItem.slotName)}
           </div>
             );
           })()
+        )}
+
+        {selectedItemDetail && (
+          <div className="item-detail-sheet-overlay" onClick={() => setSelectedItemDetail(null)}>
+            <div
+              className={`item-detail-sheet grade-${getTooltipGradeClass(selectedItemDetail.item.grade)}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="item-detail-sheet-header">
+                <span>{selectedItemDetail.slotName} 상세 정보</span>
+                <button onClick={() => setSelectedItemDetail(null)} title="닫기">
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="item-detail-sheet-body">
+                {renderEquipmentTooltipContent(selectedItemDetail.item, selectedItemDetail.slotName)}
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

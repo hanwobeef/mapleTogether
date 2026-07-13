@@ -5,6 +5,7 @@ import EditModal from './EditModal';
 import { RefreshCw, UserPlus, ShieldAlert, Sparkles, Sun, Moon, LayoutGrid, Table2, Users, X } from 'lucide-react';
 import { fetchFullCharacterData } from '../utils/nexonApi';
 import ComparisonTable from './ComparisonTable';
+import { TAG_OPTIONS, normalizeTagList } from '../utils/tagOptions';
 import './Dashboard.css';
 
 const INITIAL_CHARACTERS = [];
@@ -18,13 +19,7 @@ const STORAGE_VERSION = '1';
 const UNASSIGNED_OWNER = '미지정';
 
 function normalizeTags(tags) {
-  if (Array.isArray(tags)) {
-    return tags.map(tag => tag.toString().trim()).filter(Boolean);
-  }
-  if (typeof tags === 'string') {
-    return tags.split(',').map(tag => tag.trim()).filter(Boolean);
-  }
-  return [];
+  return normalizeTagList(tags);
 }
 
 function normalizeCharacter(character) {
@@ -107,7 +102,7 @@ export default function Dashboard() {
   );
 
   const tags = useMemo(
-    () => [...new Set(normalizedCharacters.flatMap(char => char.tags))].sort((a, b) => a.localeCompare(b, 'ko')),
+    () => TAG_OPTIONS.filter(option => normalizedCharacters.some(char => char.tags.includes(option.value))),
     [normalizedCharacters]
   );
 
@@ -425,7 +420,7 @@ export default function Dashboard() {
               <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}>
                 <option value="all">전체</option>
                 {tags.map(tag => (
-                  <option key={tag} value={tag}>{tag}</option>
+                  <option key={tag.value} value={tag.value}>{tag.label}</option>
                 ))}
               </select>
             </label>
@@ -485,6 +480,7 @@ export default function Dashboard() {
               onToggleCandidate={togglePartyCandidate}
               onDetailClick={setSelectedChar}
               onEditClick={setEditChar}
+              onUpdatePresets={handleUpdatePresets}
             />
           ) : viewMode === 'owners' ? (
             <div className="owner-groups">

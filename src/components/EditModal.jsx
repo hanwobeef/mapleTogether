@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { X, Save, Search } from 'lucide-react';
+import { Check, X, Save, Search } from 'lucide-react';
 import { fetchFullCharacterData } from '../utils/nexonApi';
+import { TAG_OPTIONS, normalizeTagList } from '../utils/tagOptions';
 import './EditModal.css';
 
 const DEFAULT_STATS = {
@@ -33,9 +34,13 @@ export default function EditModal({ character, onClose, onSave }) {
   const [avatar, setAvatar] = useState(() => character?.avatar || '');
   const [equipment, setEquipment] = useState(() => character?.equipment || null);
   const [owner, setOwner] = useState(() => character?.owner || '');
-  const [tagInput, setTagInput] = useState(() => Array.isArray(character?.tags) ? character.tags.join(', ') : '');
+  const [selectedTag, setSelectedTag] = useState(() => normalizeTagList(character?.tags)[0] || '');
   const [isLoadingApi, setIsLoadingApi] = useState(false);
   const [nexonData, setNexonData] = useState(null);
+
+  const toggleTag = (tag) => {
+    setSelectedTag(prev => (prev === tag ? '' : tag));
+  };
 
   const handleLoadFromNexon = async () => {
     if (!name.trim()) {
@@ -80,6 +85,14 @@ export default function EditModal({ character, onClose, onSave }) {
       alert('레벨은 1부터 300 사이여야 합니다.');
       return;
     }
+    if (!owner.trim()) {
+      alert('소유자를 입력해주세요.');
+      return;
+    }
+    if (!selectedTag) {
+      alert('태그를 하나 선택해주세요.');
+      return;
+    }
     
     const charData = {
       ...(character || {}),
@@ -92,7 +105,7 @@ export default function EditModal({ character, onClose, onSave }) {
       avatar: avatar,
       equipment: equipment,
       owner: owner.trim() || '미지정',
-      tags: tagInput.split(',').map(tag => tag.trim()).filter(Boolean)
+      tags: selectedTag ? [selectedTag] : []
     };
     
     onSave(charData);
@@ -147,7 +160,7 @@ export default function EditModal({ character, onClose, onSave }) {
             <div className="form-section">
               <div className="form-row">
                 <div className="form-field">
-                  <label>소유자</label>
+                  <label>소유자 <span className="required">*</span></label>
                   <input
                     type="text"
                     value={owner}
@@ -157,14 +170,21 @@ export default function EditModal({ character, onClose, onSave }) {
                   />
                 </div>
                 <div className="form-field">
-                  <label>태그</label>
-                  <input
-                    type="text"
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    placeholder="본캐, 검마팟, 보스돌이"
-                    maxLength={80}
-                  />
+                  <label>태그 <span className="required">*</span></label>
+                  <div className="tag-select-group">
+                    {TAG_OPTIONS.map(option => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`tag-select tag-tone-${option.tone} ${selectedTag === option.value ? 'active' : ''}`}
+                        aria-pressed={selectedTag === option.value}
+                        onClick={() => toggleTag(option.value)}
+                      >
+                        {selectedTag === option.value && <Check size={14} />}
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -198,7 +218,7 @@ export default function EditModal({ character, onClose, onSave }) {
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               취소
             </button>
-            <button type="submit" className="btn btn-primary" disabled={!avatar}>
+            <button type="submit" className="btn btn-primary" disabled={!avatar || !owner.trim() || !selectedTag}>
               <Save size={16} /> 대시보드 등록
             </button>
           </div>

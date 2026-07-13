@@ -21,6 +21,22 @@
   --danger-red: #ef4444;
   --success-green: #22c55e;
 
+  --tag-main-fg: #22c55e;
+  --tag-main-bg: rgba(34, 197, 94, 0.12);
+  --tag-main-active-bg: #16a34a;
+  --tag-main-border: rgba(34, 197, 94, 0.32);
+  --tag-main-ring: rgba(34, 197, 94, 0.14);
+  --tag-sub-fg: #facc15;
+  --tag-sub-bg: rgba(250, 204, 21, 0.12);
+  --tag-sub-active-bg: #ca8a04;
+  --tag-sub-border: rgba(250, 204, 21, 0.34);
+  --tag-sub-ring: rgba(250, 204, 21, 0.14);
+  --tag-boss-fg: #c084fc;
+  --tag-boss-bg: rgba(192, 132, 252, 0.13);
+  --tag-boss-active-bg: #9333ea;
+  --tag-boss-border: rgba(192, 132, 252, 0.34);
+  --tag-boss-ring: rgba(192, 132, 252, 0.14);
+
   /* Avatar Frame variables */
   --bg-avatar-frame: rgba(13, 17, 26, 0.5);
   --border-avatar-frame: rgba(36, 52, 84, 0.8);
@@ -60,6 +76,22 @@
   --accent-blue: #2563eb;
   --danger-red: #ef4444;
   --success-green: #16a34a;
+
+  --tag-main-fg: #15803d;
+  --tag-main-bg: #dcfce7;
+  --tag-main-active-bg: #16a34a;
+  --tag-main-border: #86efac;
+  --tag-main-ring: rgba(22, 163, 74, 0.16);
+  --tag-sub-fg: #a16207;
+  --tag-sub-bg: #fef3c7;
+  --tag-sub-active-bg: #d97706;
+  --tag-sub-border: #facc15;
+  --tag-sub-ring: rgba(202, 138, 4, 0.18);
+  --tag-boss-fg: #7e22ce;
+  --tag-boss-bg: #f3e8ff;
+  --tag-boss-active-bg: #9333ea;
+  --tag-boss-border: #c084fc;
+  --tag-boss-ring: rgba(147, 51, 234, 0.16);
 
   /* Avatar Frame variables */
   --bg-avatar-frame: rgba(241, 245, 249, 0.6);
@@ -199,6 +231,30 @@ body {
   animation: spin 1s linear infinite;
 }
 
+.tag-tone-main {
+  --tag-fg: var(--tag-main-fg);
+  --tag-bg: var(--tag-main-bg);
+  --tag-bg-active: var(--tag-main-active-bg);
+  --tag-border: var(--tag-main-border);
+  --tag-ring: var(--tag-main-ring);
+}
+
+.tag-tone-sub {
+  --tag-fg: var(--tag-sub-fg);
+  --tag-bg: var(--tag-sub-bg);
+  --tag-bg-active: var(--tag-sub-active-bg);
+  --tag-border: var(--tag-sub-border);
+  --tag-ring: var(--tag-sub-ring);
+}
+
+.tag-tone-boss {
+  --tag-fg: var(--tag-boss-fg);
+  --tag-bg: var(--tag-boss-bg);
+  --tag-bg-active: var(--tag-boss-active-bg);
+  --tag-border: var(--tag-boss-border);
+  --tag-ring: var(--tag-boss-ring);
+}
+
 /* Common Utility classes */
 .btn {
   display: inline-flex;
@@ -213,6 +269,18 @@ body {
   border: none;
   outline: none;
   font-family: var(--font-sans);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn:disabled:hover {
+  transform: none;
+  box-shadow: none;
 }
 
 .btn-primary {
