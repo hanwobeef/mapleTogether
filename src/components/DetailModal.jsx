@@ -754,12 +754,12 @@ export default function DetailModal({ character, onClose, onUpdatePresets, onRef
                 )}
               </div>
 
-              {currentSetEffects.length > 0 && (
-                <div className="set-effect-panel">
-                  <div className="set-effect-header">
-                    <span>활성 세트옵션</span>
-                    <small>현재 장착 장비 기준</small>
-                  </div>
+              <div className="set-effect-panel">
+                <div className="set-effect-header">
+                  <span>활성 세트옵션</span>
+                  <small>현재 장착 장비 기준</small>
+                </div>
+                {currentSetEffects.length > 0 ? (
                   <div className="set-effect-list">
                     {currentSetEffects.map((effect) => (
                       <div key={effect.name} className="set-effect-card">
@@ -782,8 +782,12 @@ export default function DetailModal({ character, onClose, onUpdatePresets, onRef
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="set-effect-empty">
+                    세트옵션 정보가 없습니다. 기존 등록 캐릭터라면 [정보 갱신] 후 다시 확인해주세요.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

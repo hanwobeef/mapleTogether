@@ -162,6 +162,13 @@ export async function getCharacterItemEquipment(ocid, date) {
 }
 
 /**
+ * 캐릭터 장착 장비 세트효과 정보를 가져옵니다.
+ */
+export async function getCharacterSetEffect(ocid, date) {
+  return fetchFromNexon("/character/set-effect", { ocid, date });
+}
+
+/**
  * 캐릭터 캐시 장비(코디) 정보를 가져옵니다.
  */
 export async function getCharacterCashItemEquipment(ocid, date) {
@@ -326,9 +333,10 @@ export async function fetchFullCharacterData(characterName) {
     }
 
     // 3. 결정된 최신 기준 날짜로 스탯 및 모든 프리셋 정보 병렬 조회
-    const [stat, equipment, cashEquipment, petEquipment, ability, hyperStat, linkSkill, union, unionRaider] = await Promise.all([
+    const [stat, equipment, setEffect, cashEquipment, petEquipment, ability, hyperStat, linkSkill, union, unionRaider] = await Promise.all([
       getCharacterStat(ocid, latestDate),
       getCharacterItemEquipment(ocid, latestDate),
+      getCharacterSetEffect(ocid, latestDate).catch(() => ({})),
       getCharacterCashItemEquipment(ocid, latestDate).catch(() => ({})),
       getCharacterPetEquipment(ocid, latestDate).catch(() => ({})),
       getCharacterAbility(ocid, latestDate).catch(() => ({})),
@@ -361,7 +369,7 @@ export async function fetchFullCharacterData(characterName) {
 
     // 7. 스탯 배열 매핑 (final_stat)
     const mappedStats = mapFinalStatsForDashboard(stat.final_stat);
-    const setEffects = mapEquipmentSetEffects(equipment.set_effect);
+    const setEffects = mapEquipmentSetEffects(setEffect.set_effect);
 
     // 8. 장비 매핑 공통 헬퍼
     const slotMap = {
