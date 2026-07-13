@@ -22,7 +22,7 @@ cp .env.example .env
 
 Cloudflare Pages 배포에서는 `VITE_NEXON_API_PROXY_URL=/api/nexon/maplestory/v1`를 사용하고, `NEXON_API_KEY`는 Pages의 secret으로 설정합니다.
 
-로컬에서 Node 프록시로 개발하려면 `.env`의 `VITE_NEXON_API_PROXY_URL`을 `http://localhost:8787/maplestory/v1`로 바꾸고 `NEXON_API_KEY`에 넥슨 OpenAPI 키를 넣은 뒤, 프록시와 Vite 개발 서버를 각각 실행합니다.
+로컬에서 Node 프록시로 개발하려면 `.env`의 `VITE_NEXON_API_PROXY_URL=/api/nexon/maplestory/v1`은 그대로 두고 `NEXON_API_KEY`에 넥슨 OpenAPI 키를 넣은 뒤, 프록시와 Vite 개발 서버를 각각 실행합니다. Vite 개발 서버는 `/api/nexon` 요청을 로컬 프록시(`http://localhost:8787`)로 전달합니다.
 
 ```bash
 npm run proxy

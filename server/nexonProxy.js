@@ -1,4 +1,26 @@
 import http from 'node:http';
+import fs from 'node:fs';
+
+function loadDotEnv() {
+  if (!fs.existsSync('.env')) return;
+
+  const lines = fs.readFileSync('.env', 'utf8').split(/\r?\n/);
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) return;
+
+    const separatorIndex = trimmed.indexOf('=');
+    if (separatorIndex === -1) return;
+
+    const key = trimmed.slice(0, separatorIndex).trim();
+    const value = trimmed.slice(separatorIndex + 1).trim().replace(/^["']|["']$/g, '');
+    if (key && process.env[key] === undefined) {
+      process.env[key] = value;
+    }
+  });
+}
+
+loadDotEnv();
 
 const PORT = Number(process.env.PORT || 8787);
 const API_KEY = process.env.NEXON_API_KEY;
